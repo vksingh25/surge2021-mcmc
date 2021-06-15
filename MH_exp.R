@@ -27,3 +27,4 @@ legend("topright", col = c("red", "blue"), legend = c("target", "current"),
 acf(x, main = "ACF Plot")
 # Plot 3
 plot.ts(x, main = "Trace plot")
+
