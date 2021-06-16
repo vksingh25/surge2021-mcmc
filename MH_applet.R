@@ -7,7 +7,12 @@ ui <- fluidPage(
     sidebarPanel(
       # TODO: Add more distributions
       radioButtons("dist", "Target Distribution:",
-                   c("Exponential" = "exp")),
+                   c(
+                     "Normal" = "norm",
+                     "Pareto" = "pareto",
+                     "Cauchy" = "cauchy",
+                     "Exponential" = "exp"
+                    )),
       br(),
       # slider for number of draws
       sliderInput(inputId = "N",
@@ -26,11 +31,17 @@ ui <- fluidPage(
                   animate = TRUE),
       animationOptions(interval = 5),
       br(),
+      # slider for initial point
       sliderInput(inputId = "initial",
                   label = "Starting Point",
                   min = 0,
                   max = 100,
-                  value = 3)
+                  value = 3),
+      br(),
+      # slider for range for plot
+      sliderInput("range", "Range",
+                  min = -20, max = 20,
+                  value = c(-5, 10))
     ),
     mainPanel(
       # different tabs for different plots
@@ -48,11 +59,18 @@ ui <- fluidPage(
 server <- function(input, output){
   # target distribution (by default exp)
   #TODO: Add more distributions
-  target <- function(y) {
-    return (ifelse(y < 0, 0, exp(-y)))
+  target <- function(y, dist) {
+    result <- switch(dist,
+                     exp = ifelse(y >= 0, exp(-y), 0),
+                     norm = exp(-(y^2)/2),
+                     cauchy = 1/(1+y^2),
+                     pareto = ifelse(y >= 1, 1/(y^2), 0),
+                     ifelse(y >= 0, exp(-y), 0)
+                    )
+    return(result)
   }
   # function to draw values from our proposal distribution
-  proposal_dist <- function(N, h, initial = 3){
+  proposal_dist <- function(N, h, initial = 1){
     # vector of normal and uniform r.v.s for optimization purposes
     normals <- rnorm(N, 0, h)
     uniforms <- runif(N)
@@ -61,7 +79,7 @@ server <- function(input, output){
     for(i in 2:N){
       current_x <- x[i-1]
       proposed_x <- current_x + normals[i]  # proposed value
-      A <- min(1, target(proposed_x)/target(current_x))  # MH Acceptance rate
+      A <- min(1, target(proposed_x, input$dist)/target(current_x, input$dist))  # MH Acceptance rate
       if(uniforms[i] < A) {
         x[i] <- proposed_x
       } else {
@@ -75,17 +93,26 @@ server <- function(input, output){
     proposal_dist(input$N, input$h, input$initial)
   })
 
+  xs <- seq(-10, 10, length = 1000)
   d <- reactive({
     # TODO: add more distributions
-    dist <- switch(input$dist,
-                   exp = rexp)
-    dist(1e5)
+    switch(input$dist,
+           exp = dexp(xs),
+           norm = dnorm(xs),
+           cauchy = dcauchy(xs),
+           pareto = dpareto(xs, shape = 1),
+           dexp(xs)
+           )
+  })
+
+  range <- reactive({
+    input$range
   })
 
   # plots
   output$density <- renderPlot({
-    plot(density(proposal()), col = "blue", xlim = c(0,10), main = "Density plot")
-    lines(density(d()), col = "red")
+    plot(density(proposal()), col = "blue", xlim = range(), main = "Density plot")
+    lines(xs, d(), type="l", col = 'red')
   })
   output$acf <- renderPlot({
     acf(proposal(), main = "ACF Plot")
@@ -97,3 +124,4 @@ server <- function(input, output){
 
 # call to shiny app
 shinyApp(ui = ui, server = server)
+
