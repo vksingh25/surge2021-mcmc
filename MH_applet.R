@@ -5,7 +5,7 @@ ui <- fluidPage(
   titlePanel("MH Algorithm"),
   sidebarLayout(
     sidebarPanel(
-      # TODO: Add more distributions
+      # buttons to select from different distributions
       radioButtons("dist", "Target Distribution:",
                    c(
                      "Normal" = "norm",
@@ -58,7 +58,6 @@ ui <- fluidPage(
 # server
 server <- function(input, output){
   # target distribution (by default exp)
-  #TODO: Add more distributions
   target <- function(y, dist) {
     result <- switch(dist,
                      exp = ifelse(y >= 0, exp(-y), 0),
@@ -71,7 +70,7 @@ server <- function(input, output){
   }
   # function to draw values from our proposal distribution
   proposal_dist <- function(N, h, initial = 1){
-    # vector of normal and uniform r.v.s for optimization purposes
+    # vector of normal and uniform r.v.s (for optimization purposes)
     normals <- rnorm(N, 0, h)
     uniforms <- runif(N)
     x <- rep(0, N)
@@ -93,9 +92,9 @@ server <- function(input, output){
     proposal_dist(input$N, input$h, input$initial)
   })
 
+  # For line plot of dist for comparison
   xs <- seq(-10, 10, length = 1000)
   d <- reactive({
-    # TODO: add more distributions
     switch(input$dist,
            exp = dexp(xs),
            norm = dnorm(xs),
@@ -104,7 +103,7 @@ server <- function(input, output){
            dexp(xs)
            )
   })
-
+  # range for plot
   range <- reactive({
     input$range
   })
