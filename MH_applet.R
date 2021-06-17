@@ -13,7 +13,7 @@ ui <- fluidPage(
                    c(
                      "Normal" = "norm",
                      "Pareto" = "pareto",
-                     "Cauchy" = "cauchy",
+                     "t-Distribution" = "t.dist",
                      "Exponential" = "exp"
                     )),
       br(),
@@ -26,7 +26,7 @@ ui <- fluidPage(
       # slider for standard deviation
       br(),
       sliderInput(inputId = "h",
-                  label = "standard deviation",
+                  label = "Step Size",
                   min = 0.01,
                   max = 1,
                   value = 1,
@@ -45,11 +45,35 @@ ui <- fluidPage(
       sliderInput("range", "Range",
                   min = -20, max = 20,
                   value = c(-5, 10)),
-      # Shape parameter for pareto distribution
-      br(), br(),
-      sliderInput("shape_pareto", "Pareto: Shape",
-                  min = 1, max = 10,
-                  value = 1),
+      # Parameters of different distributions
+      br(),
+      h4("Distribution Parameters"),
+      fluidRow(
+        column(6,
+               numericInput("shape_pareto", "Pareto: Shape", value = 1, min = 0.01, max = 10),
+        ),
+        column(6,
+               numericInput("scale_pareto", "Pareto: Scale", value = 1, min = 0.01, max = 10),
+        )
+      ),
+      fluidRow(
+        column(12,
+               numericInput("rate_exp", "Exponential: Rate", value = 1, min = 0.01, max = 10),
+        ),
+      ),
+      fluidRow(
+        column(6,
+               numericInput("mean_norm", "Normal: Mean", value = 0, min = -10, max = 10),
+        ),
+        column(6,
+               numericInput("sd_norm", "Normal: SD", value = 1, min = 0.01, max = 10),
+        )
+      ),
+      fluidRow(
+        column(12,
+               numericInput("df_t", "t-distribution: df", value = 1, min = 0.01, max = 10),
+        ),
+      ),
     ),
     mainPanel(
       # different tabs for different plots
@@ -69,8 +93,33 @@ server <- function(input, output){
   observeEvent(input$dist, {
     if(input$dist == "pareto"){
       shinyjs::show("shape_pareto")
+      shinyjs::show("scale_pareto")
     } else {
       shinyjs::hide("shape_pareto")
+      shinyjs::hide("scale_pareto")
+    }
+  })
+  observeEvent(input$dist, {
+    if(input$dist == "norm"){
+      shinyjs::show("mean_norm")
+      shinyjs::show("sd_norm")
+    } else {
+      shinyjs::hide("mean_norm")
+      shinyjs::hide("sd_norm")
+    }
+  })
+  observeEvent(input$dist, {
+    if(input$dist == "exp"){
+      shinyjs::show("rate_exp")
+    } else {
+      shinyjs::hide("rate_exp")
+    }
+  })
+  observeEvent(input$dist, {
+    if(input$dist == "t.dist"){
+      shinyjs::show("df_t")
+    } else {
+      shinyjs::hide("df_t")
     }
   })
 
@@ -82,7 +131,7 @@ server <- function(input, output){
     result <- switch(input$dist,
                      exp = ifelse(y >= 0, exp(-y), 0),
                      norm = exp(-(y^2)/2),
-                     cauchy = 1/(1+y^2),
+                     t.dist = 1/(1+y^2),
                      pareto = ifelse(y >= 1, shape/(y^(1+shape)), 0),
                      ifelse(y >= 0, exp(-y), 0)
                     )
@@ -118,7 +167,7 @@ server <- function(input, output){
     switch(input$dist,
            exp = dexp(xs),
            norm = dnorm(xs),
-           cauchy = dcauchy(xs),
+           t.dist = dt(xs, df = 1),
            pareto = dpareto(xs, shape = input$shape_pareto),
            dexp(xs)
            )
