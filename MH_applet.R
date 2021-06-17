@@ -9,7 +9,7 @@ ui <- fluidPage(
     sidebarPanel(
       useShinyjs(),
       # buttons to select from different distributions
-      radioButtons("dist", "Target Distribution:",
+      selectInput("dist", "Target Distribution:",
                    c(
                      "Normal" = "norm",
                      "Pareto" = "pareto",
