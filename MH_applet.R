@@ -1,10 +1,13 @@
 library(shiny)
+library(VGAM)
+library(shinyjs)
 
 # ui
 ui <- fluidPage(
   titlePanel("MH Algorithm"),
   sidebarLayout(
     sidebarPanel(
+      useShinyjs(),
       # buttons to select from different distributions
       radioButtons("dist", "Target Distribution:",
                    c(
@@ -41,7 +44,12 @@ ui <- fluidPage(
       # slider for range for plot
       sliderInput("range", "Range",
                   min = -20, max = 20,
-                  value = c(-5, 10))
+                  value = c(-5, 10)),
+      # Shape parameter for pareto distribution
+      br(), br(),
+      sliderInput("shape_pareto", "Pareto: Shape",
+                  min = 1, max = 10,
+                  value = 1),
     ),
     mainPanel(
       # different tabs for different plots
@@ -57,13 +65,25 @@ ui <- fluidPage(
 
 # server
 server <- function(input, output){
+  # hide and show shape_pareto slider based on the dist
+  observeEvent(input$dist, {
+    if(input$dist == "pareto"){
+      shinyjs::show("shape_pareto")
+    } else {
+      shinyjs::hide("shape_pareto")
+    }
+  })
+
+
   # target distribution (by default exp)
-  target <- function(y, dist) {
-    result <- switch(dist,
+  target <- function(y) {
+    # shape parameter for pareto dist
+    shape <- input$shape_pareto
+    result <- switch(input$dist,
                      exp = ifelse(y >= 0, exp(-y), 0),
                      norm = exp(-(y^2)/2),
                      cauchy = 1/(1+y^2),
-                     pareto = ifelse(y >= 1, 1/(y^2), 0),
+                     pareto = ifelse(y >= 1, shape/(y^(1+shape)), 0),
                      ifelse(y >= 0, exp(-y), 0)
                     )
     return(result)
@@ -78,7 +98,7 @@ server <- function(input, output){
     for(i in 2:N){
       current_x <- x[i-1]
       proposed_x <- current_x + normals[i]  # proposed value
-      A <- min(1, target(proposed_x, input$dist)/target(current_x, input$dist))  # MH Acceptance rate
+      A <- min(1, target(proposed_x)/target(current_x))  # MH Acceptance rate
       if(uniforms[i] < A) {
         x[i] <- proposed_x
       } else {
@@ -99,7 +119,7 @@ server <- function(input, output){
            exp = dexp(xs),
            norm = dnorm(xs),
            cauchy = dcauchy(xs),
-           pareto = dpareto(xs, shape = 1),
+           pareto = dpareto(xs, shape = input$shape_pareto),
            dexp(xs)
            )
   })
