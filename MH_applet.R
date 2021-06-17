@@ -32,7 +32,7 @@ ui <- fluidPage(
                   value = 1,
                   step = 0.01,
                   animate = TRUE),
-      animationOptions(interval = 5),
+      animationOptions(interval = 50),
       br(),
       # slider for initial point
       sliderInput(inputId = "initial",
@@ -56,11 +56,7 @@ ui <- fluidPage(
                numericInput("scale_pareto", "Pareto: Scale", value = 1, min = 0.01, max = 10),
         )
       ),
-      fluidRow(
-        column(12,
-               numericInput("rate_exp", "Exponential: Rate", value = 1, min = 0.01, max = 10),
-        ),
-      ),
+      numericInput("rate_exp", "Exponential: Rate", value = 1, min = 0.01, max = 10),
       fluidRow(
         column(6,
                numericInput("mean_norm", "Normal: Mean", value = 0, min = -10, max = 10),
@@ -69,11 +65,7 @@ ui <- fluidPage(
                numericInput("sd_norm", "Normal: SD", value = 1, min = 0.01, max = 10),
         )
       ),
-      fluidRow(
-        column(12,
-               numericInput("df_t", "t-distribution: df", value = 1, min = 0.01, max = 10),
-        ),
-      ),
+      numericInput("df_t", "t-distribution: df", value = 1, min = 0.01, max = 10),
     ),
     mainPanel(
       # different tabs for different plots
@@ -91,49 +83,51 @@ ui <- fluidPage(
 server <- function(input, output){
   # hide and show shape_pareto slider based on the dist
   observeEvent(input$dist, {
-    if(input$dist == "pareto"){
-      shinyjs::show("shape_pareto")
-      shinyjs::show("scale_pareto")
-    } else {
-      shinyjs::hide("shape_pareto")
-      shinyjs::hide("scale_pareto")
-    }
+    switch(input$dist,
+           norm = {
+             shinyjs::show("mean_norm")
+             shinyjs::show("sd_norm")
+             shinyjs::hide("shape_pareto")
+             shinyjs::hide("scale_pareto")
+             shinyjs::hide("rate_exp")
+             shinyjs::hide("df_t")
+           },
+           exp = {
+             shinyjs::hide("mean_norm")
+             shinyjs::hide("sd_norm")
+             shinyjs::hide("shape_pareto")
+             shinyjs::hide("scale_pareto")
+             shinyjs::show("rate_exp")
+             shinyjs::hide("df_t")
+           },
+           t.dist = {
+             shinyjs::hide("mean_norm")
+             shinyjs::hide("sd_norm")
+             shinyjs::hide("shape_pareto")
+             shinyjs::hide("scale_pareto")
+             shinyjs::hide("rate_exp")
+             shinyjs::show("df_t")
+           },
+           pareto = {
+             shinyjs::hide("mean_norm")
+             shinyjs::hide("sd_norm")
+             shinyjs::show("shape_pareto")
+             shinyjs::show("scale_pareto")
+             shinyjs::hide("rate_exp")
+             shinyjs::hide("df_t")
+           })
   })
-  observeEvent(input$dist, {
-    if(input$dist == "norm"){
-      shinyjs::show("mean_norm")
-      shinyjs::show("sd_norm")
-    } else {
-      shinyjs::hide("mean_norm")
-      shinyjs::hide("sd_norm")
-    }
-  })
-  observeEvent(input$dist, {
-    if(input$dist == "exp"){
-      shinyjs::show("rate_exp")
-    } else {
-      shinyjs::hide("rate_exp")
-    }
-  })
-  observeEvent(input$dist, {
-    if(input$dist == "t.dist"){
-      shinyjs::show("df_t")
-    } else {
-      shinyjs::hide("df_t")
-    }
-  })
-
 
   # target distribution (by default exp)
   target <- function(y) {
     # shape parameter for pareto dist
     shape <- input$shape_pareto
     result <- switch(input$dist,
-                     exp = ifelse(y >= 0, exp(-y), 0),
-                     norm = exp(-(y^2)/2),
-                     t.dist = 1/(1+y^2),
-                     pareto = ifelse(y >= 1, shape/(y^(1+shape)), 0),
-                     ifelse(y >= 0, exp(-y), 0)
+                     exp = dexp(y, input$rate_exp),
+                     norm = dnorm(y, input$mean_norm, input$sd_norm),
+                     t.dist = dt(y, df = input$df_t),
+                     pareto = dpareto(y, input$scale_pareto, input$shape_pareto),
+                     dexp(y)
                     )
     return(result)
   }
@@ -148,11 +142,7 @@ server <- function(input, output){
       current_x <- x[i-1]
       proposed_x <- current_x + normals[i]  # proposed value
       A <- min(1, target(proposed_x)/target(current_x))  # MH Acceptance rate
-      if(uniforms[i] < A) {
-        x[i] <- proposed_x
-      } else {
-        x[i] <- current_x
-      }
+      ifelse(uniforms[i] < A, x[i] <- proposed_x, x[i] <- current_x)
     }
     return (x)
   }
@@ -165,10 +155,10 @@ server <- function(input, output){
   xs <- seq(-10, 10, length = 1000)
   d <- reactive({
     switch(input$dist,
-           exp = dexp(xs),
-           norm = dnorm(xs),
-           t.dist = dt(xs, df = 1),
-           pareto = dpareto(xs, shape = input$shape_pareto),
+           exp = dexp(xs, input$rate_exp),
+           norm = dnorm(xs, input$mean_norm, input$sd_norm),
+           t.dist = dt(xs, df = input$df_t),
+           pareto = dpareto(xs, input$scale_pareto, input$shape_pareto),
            dexp(xs)
            )
   })
@@ -192,4 +182,3 @@ server <- function(input, output){
 
 # call to shiny app
 shinyApp(ui = ui, server = server)
-
