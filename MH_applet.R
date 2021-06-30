@@ -21,18 +21,12 @@ ui <- fluidPage(
       sliderInput(inputId = "N",
                   label = "Number of draws",
                   min = 2,
-                  max = 1e5,
-                  value = 1e4),
+                  max = 1e4,
+                  value = 100),
       # slider for standard deviation
       br(),
-      sliderInput(inputId = "h",
-                  label = "Step Size",
-                  min = 0.01,
-                  max = 1,
-                  value = 1,
-                  step = 0.01,
-                  animate = TRUE),
-      animationOptions(interval = 50),
+      # numeric input for step size
+      numericInput("h", "Step Size", min = 0.01, max = 10, value = 1),
       br(),
       # slider for initial point
       sliderInput(inputId = "initial",
@@ -152,7 +146,7 @@ server <- function(input, output){
   })
 
   # For line plot of dist for comparison
-  xs <- seq(-10, 10, length = 1000)
+  xs <- seq(-20, 20, length = 1000)
   d <- reactive({
     switch(input$dist,
            exp = dexp(xs, input$rate_exp),
