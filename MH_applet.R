@@ -1,6 +1,7 @@
 library(shiny)
 library(VGAM)
 library(shinyjs)
+library(ggplot2)
 
 # ui
 ui <- fluidPage(
@@ -35,12 +36,7 @@ ui <- fluidPage(
                   max = 100,
                   value = 3),
       br(),
-      # slider for range for plot
-      sliderInput("range", "Range",
-                  min = -20, max = 20,
-                  value = c(-5, 10)),
       # Parameters of different distributions
-      br(),
       h4("Distribution Parameters"),
       fluidRow(
         column(6,
@@ -126,51 +122,68 @@ server <- function(input, output){
     return(result)
   }
   # function to draw values from our proposal distribution
-  proposal_dist <- function(N, h, initial = 1){
+  proposal_dist <- function(N = 100, h = 1, initial = 1){
     # vector of normal and uniform r.v.s (for optimization purposes)
     normals <- rnorm(N, 0, h)
     uniforms <- runif(N)
     x <- rep(0, N)
+    acceptance <- rep(0, N)
     x[1] <- initial  # initialize
+    acceptance[1] <- 1
     for(i in 2:N){
       current_x <- x[i-1]
       proposed_x <- current_x + normals[i]  # proposed value
       A <- min(1, target(proposed_x)/target(current_x))  # MH Acceptance rate
-      ifelse(uniforms[i] < A, x[i] <- proposed_x, x[i] <- current_x)
+      if(uniforms[i] < A){
+        x[i] <- proposed_x
+        acceptance[i] <- 1
+      } else {
+        x[i] <- current_x
+      }
     }
-    return (x)
+    return (list(x, acceptance))
   }
+
+  N <- reactive ({input$N})
 
   proposal <- reactive({
     proposal_dist(input$N, input$h, input$initial)
   })
 
   # For line plot of dist for comparison
-  xs <- seq(-20, 20, length = 1000)
   d <- reactive({
     switch(input$dist,
-           exp = dexp(xs, input$rate_exp),
-           norm = dnorm(xs, input$mean_norm, input$sd_norm),
-           t.dist = dt(xs, df = input$df_t),
-           pareto = dpareto(xs, input$scale_pareto, input$shape_pareto),
-           dexp(xs)
+           exp = rexp(1e4, input$rate_exp),
+           norm = rnorm(1e4, input$mean_norm, input$sd_norm),
+           t.dist = rt(1e4, df = input$df_t),
+           pareto = rpareto(1e4, input$scale_pareto, input$shape_pareto),
+           dexp(1e4)
            )
   })
-  # range for plot
-  range <- reactive({
-    input$range
+
+  acceptance <- reactive({
+    rate <- mean(unlist(proposal()[2]))
+    format(round(rate, 2), nsmall = 2)
   })
 
   # plots
   output$density <- renderPlot({
-    plot(density(proposal()), col = "blue", xlim = range(), main = "Density plot")
-    lines(xs, d(), type="l", col = 'red')
+    ggplot(data = data.frame(output = unlist(proposal()[1])), mapping = aes(x = output, color = 'blue', linetype = 'current')) +
+      geom_line(stat = 'density') +
+      geom_line(data = data.frame(target = d()), mapping = aes(x = target, color = 'red', linetype = 'target'), stat = 'density', lty = 2) +
+      scale_color_manual(name = 'Legend', values = c('blue' = 'blue', 'red' = 'red'), labels = c('current', 'target')) +
+      scale_linetype_manual(name = 'Legend', values = c('current' = 1, 'target' = 2)) +
+      ylab('Density') + xlab(paste("N = ", N(), ", Acceptance rate = ", acceptance())) +
+      labs(title = "Density Plot")
   })
   output$acf <- renderPlot({
-    acf(proposal(), main = "ACF Plot")
+    acf(unlist(proposal()[1]), main = "ACF Plot")
   })
   output$trace <- renderPlot({
-    plot.ts(proposal(), main = "Trace plot")
+    ggplot(data = data.frame(output = unlist(proposal()[1]), y = 1:N()), mapping = aes(x = y, y = output)) +
+      geom_line() +
+      xlab("Time") + ylab("Proposal") +
+      labs(title = "Trace Plot")
   })
 }
 
