@@ -1,21 +1,28 @@
-
 library(shiny)
-library(ggplot2)
+# library(ggplot2)
 
 ui <- fluidPage(
   titlePanel("MH Time evolution"),
   sidebarLayout(
     sidebarPanel(
       # numericInput("sd", "Standard Deviation", 1, min = 0, max = 10),
-      # hr(style="border-color: grey;"),
+      selectInput("dist", "Initial Distribution: ",
+                  choices = c(
+                    "Stationary" = "stat",
+                    "Fixed at 3" = "fixed",
+                    "Exp(0.05)" = "exp1",
+                    "Exp(0.01)" = "exp2"
+                  )),
+      hr(style="border-color: grey;"),
       # start reset buttons
       fluidRow(
         column(7, uiOutput("resetButton")),
         column(5, uiOutput("startButton"))
       ),
+
       hr(style="border-color: grey;"),
       fluidRow(
-        column(7, actionButton("stop","Stop")),
+        column(7, actionButton("pause","Pause")),
         column(3, actionButton("play","Play"))
       ),
     ),
@@ -30,16 +37,14 @@ server <- function(input, output) {
   reps <- 1000
   N <- 1e2 # number of steps
   h <- .5
-  k <- 10 #df of the target chi-sq distribution
-  chain.fixed <- matrix(0, nrow = reps, ncol = N)
+  k <- 10 # df of the target chi-sq distribution
+  # chain <- matrix(0, nrow = reps, ncol = N)
 
   waits <- reactiveValues()
   waits$resetIndicator <- 0
   waits$data <- matrix(0, nrow = reps, ncol = N)
   waits$i <- 1
   waits$target <- rchisq(1e6, df = k)
-
-
 
   output$resetButton <- renderUI({
     if(waits$resetIndicator == 0){
@@ -86,29 +91,54 @@ server <- function(input, output) {
     return(out)
   }
 
-  for(r in 1:reps) {
-    # Fixed starting value
-    chain.fixed[r, ] <- chisq_mh(N = N, k = k, h = h, start = 3)
+  chain <- function() {
+    if(input$dist == "stat") {
+      random.chi <- rchisq(reps, df = k)
+      for(r in 1:reps) {
+        # Fixed starting value
+        waits$data[r, ] <- chisq_mh(N = N, k = k, h = h, start = random.chi[r])
+      }
+    }
+    else if(input$dist == "exp1") {
+      random.exp1 <- rexp(reps, 0.05)
+      for(r in 1:reps) {
+        # Fixed starting value
+        waits$data[r, ] <- chisq_mh(N = N, k = k, h = h, start = random.exp1[r])
+      }
+    }
+    else if(input$dist == "exp2") {
+      random.exp2 <- rexp(reps, 0.01)
+      for(r in 1:reps) {
+        # Fixed starting value
+        waits$data[r, ] <- chisq_mh(N = N, k = k, h = h, start = random.exp2[r])
+      }
+    } else {
+      for(r in 1:reps) {
+        # Fixed starting value
+        waits$data[r, ] <- chisq_mh(N = N, k = k, h = h, start = 3)
+      }
+    }
   }
+
 
   forward <- function() {
     waits$resetIndicator <- 1 # change button label
-    waits$data <- chain.fixed
     waits$i <- min(waits$i+1, N)
   }
-
 
   session <- reactiveValues()
   session$timer <- reactiveTimer(Inf)
 
+
   observeEvent(input$play,{
+    chain()
     session$timer <- reactiveTimer(250)
     observeEvent(session$timer(),{
       forward()
     })
   })
 
-  observeEvent(input$stop,{
+  observeEvent(input$pause,{
     session$timer <- reactiveTimer(Inf)
   })
 
@@ -121,12 +151,14 @@ server <- function(input, output) {
 
   # main plot
   output$density <- renderPlot({
-    plot(density(waits$target), type = 'l', lwd = 2, main = "Density estimates from fixed", ylim = c(0,.15))
-    lines(density(waits$data[, waits$i]), lwd = 5, col = adjustcolor("green"))
-    # Comment 127-129 for removing red trailling lines
+    plot(density(waits$target), type = 'l', lwd = 2, main = "Density estimates", ylim = c(0,.15), xlab = paste("Number of draws: ", min(waits$i, N)))
+    # Comment next 3 lines for removing red trailing lines
     for(k in 1:waits$i){
-      lines(density(waits$data[, k]), col = adjustcolor("red", alpha.f = .3))
+      lines(density(waits$data[, k]), col = adjustcolor("red", alpha.f = .4))
     }
+    lines(density(waits$data[, waits$i]), lwd = 2, col = adjustcolor("green"))
+    legend("topright", col = c("black", "green", "red"), legend = c("target", "current", "prev"),
+           lwd = c(2, 2, 1))
     # ggplot(data = data.frame(output = waits$data[, waits$i]), mapping = aes(x = output, color = 'red')) +
     #   geom_line(stat = 'density') +
     #   geom_line(data = data.frame(target = waits$target), mapping = aes(x = target, color = 'black'), stat = 'density') +
