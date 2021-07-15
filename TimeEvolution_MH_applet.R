@@ -1,5 +1,6 @@
 # TODO: color gradient scheme
 # TODO: disable reset button + numeric inputs when paused (using shinyjs)
+# TODO: make static graph actually static
 
 library(shiny)
 library(shinydashboard)
@@ -82,13 +83,15 @@ body = dashboardBody(
         ),
         column(
           width = 7,
-          box(
-            title = "Figure 1", width = NULL, solidHeader = TRUE, status = 'primary',
-            plotOutput("mh_dependent")
+          tabBox(
+            title = "Figure 1", id = "tabset1", width = NULL,
+            tabPanel(title = "Animation", plotOutput("mh_dependent"), value = 1),
+            tabPanel(title = "Static", plotOutput("mh_dependent_static"), value = 2)
           ),
-          box(
-            title = "Figure 2", width = NULL, solidHeader = TRUE, status = 'primary',
-            plotOutput("mh_independent"),
+          tabBox(
+            title = "Figure 2", id = "tabset2", width = NULL,
+            tabPanel(title = "Animation", plotOutput("mh_independent"), value = 1),
+            tabPanel(title = "Static", plotOutput("mh_independent_static"), value = 2)
           )
         ),
         column(
@@ -127,7 +130,6 @@ body = dashboardBody(
             title = "Control Panel", width = NULL, status = 'primary',
             fluidRow(
               column(6, uiOutput("playButton")),
-              # column(6, actionButton("reset", label = "Reset", width = '100%')),
               column(6, uiOutput("resetButton"))
             )
           )
@@ -147,8 +149,10 @@ ui = dashboardPage(
 server = function(input, output) {
   reps = 1000
   N = 1e2 # number of steps
-  h = .5
   k = 10 # df of the target chi-sq distribution
+  colors1 = rainbow(n=N/2, start = 1/25, end = 1/8, alpha=0.2)
+  colors2 = rainbow(n=N/2, start = 1/1.85, end = 1/1.65, alpha = 0.2)
+  colors = c(colors1, colors2)
 
   chain = reactiveValues()
   chain$values_dep = matrix(0, nrow = reps, ncol = N)
@@ -246,29 +250,47 @@ server = function(input, output) {
     chain$values_indep = matrix(0, nrow = reps, ncol = N)
     chain$time = 1
   })
-
   # main plot
   output$mh_dependent = renderPlot({
     plot(density(chain$target), type = 'l', lwd = 2, main = "Density estimates", ylim = c(0,.15), xlab = paste("Number of draws: ", min(chain$time, N)))
     if(chain$time != 1){
       for(k in 1:chain$time){
-        lines(density(chain$values_dep[, k]), col = adjustcolor("red", alpha.f = .4))
+        lines(density(chain$values_dep[, k]), col = adjustcolor(colors[N+1-k]))
       }
-      lines(density(chain$values_dep[, chain$time]), lwd = 2, col = adjustcolor("green"))
+      lines(density(chain$target), lty=2, lwd=0.8)
+      # lines(density(chain$values_dep[, chain$time]), lwd = 2, col = adjustcolor("green"))
     }
     legend("topright", col = c("black", "green", "red"), legend = c("target", "current", "prev"),
            lwd = c(2, 2, 1))
+  })
+  output$mh_dependent_static = renderPlot({
+    plot(density(chain$target), type = 'l', lwd = 2, main = "Density estimates", ylim = c(0, .15))
+    if(chain$time != 1){
+      for(k in 1:N){
+        lines(density(chain$values_dep[, k]), col = adjustcolor(colors[N+1-k]))
+      }
+      lines(density(chain$target), lty=2, lwd=0.8)
+    }
   })
   output$mh_independent = renderPlot({
     plot(density(chain$target), type = 'l', lwd = 2, main = "Density estimates", ylim = c(0,.15), xlab = paste("Number of draws: ", min(chain$time, N)))
     if(chain$time != 1){
       for(k in 1:chain$time){
-        lines(density(chain$values_indep[, k]), col = adjustcolor("red", alpha.f = .4))
+        lines(density(chain$values_indep[, k]), col = adjustcolor(colors[N+1-k]))
       }
-      lines(density(chain$values_indep[, chain$time]), lwd = 2, col = adjustcolor("green"))
+      lines(density(chain$target), lty=2, lwd=0.8)
     }
     legend("topright", col = c("black", "green", "red"), legend = c("target", "current", "prev"),
            lwd = c(2, 2, 1))
+  })
+  output$mh_independent_static = renderPlot({
+    plot(density(chain$target), type = 'l', lwd = 2, main = "Density estimates", ylim = c(0, .15))
+    if(chain$time != 1){
+      for(k in 1:N){
+        lines(density(chain$values_indep[, k]), col = adjustcolor(colors[N+1-k]))
+      }
+      lines(density(chain$target), lty=2, lwd=0.8)
+    }
   })
 }
 
