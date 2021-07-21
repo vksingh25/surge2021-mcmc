@@ -1,9 +1,8 @@
-# TODO: color gradient scheme
-# TODO: disable reset button + numeric inputs when paused (using shinyjs)
-# TODO: make static graph actually static
+# TODO: disable reset button (using shinyjs)
 
 library(shiny)
 library(shinydashboard)
+library(ggplot2)
 
 chisq_den = function(x, k) {
   if(x > 0) {
@@ -82,7 +81,7 @@ body = dashboardBody(
           h3("Comparison between different MH Proposals as time progresses")
         ),
         column(
-          width = 7,
+          width = 8,
           tabBox(
             title = "Figure 1", id = "tabset1", width = NULL,
             tabPanel(title = "Animation", plotOutput("mh_dependent"), value = 1),
@@ -95,7 +94,7 @@ body = dashboardBody(
           )
         ),
         column(
-          width = 5,
+          width = 4,
           box(
             title = 'About Target', width = NULL, status = 'primary',
             "Chi-squared distribution with 10 degrees of freedom"
@@ -128,9 +127,16 @@ body = dashboardBody(
           ),
           box(
             title = "Control Panel", width = NULL, status = 'primary',
+            sliderInput(
+              inputId = 'time',
+              label = 'Number of draws',
+              min = 0, max = 100, value = 0,
+              animate = animationOptions(interval = 750)
+            ),
+            textOutput("computing"), br(),
             fluidRow(
-              column(6, uiOutput("playButton")),
-              column(6, uiOutput("resetButton"))
+              column(6, actionButton(inputId = 'start', label = 'Start', width = '100%')),
+              column(6, actionButton(inputId = 'reset', label = 'Reset', width = '100%'))
             )
           )
         )
@@ -139,7 +145,6 @@ body = dashboardBody(
   )
 )
 
-
 ui = dashboardPage(
   dashboardHeader(title = ""),
   sidebar,
@@ -147,42 +152,42 @@ ui = dashboardPage(
 )
 
 server = function(input, output) {
+  # All the required constants
   reps = 1000
   N = 1e2 # number of steps
   k = 10 # df of the target chi-sq distribution
-  colors1 = rainbow(n=N/2, start = 1/25, end = 1/8, alpha=0.2)
-  colors2 = rainbow(n=N/2, start = 1/1.85, end = 1/1.65, alpha = 0.2)
-  colors = c(colors1, colors2)
+  colors_red_static = rainbow(n=N/2, start = 1/25, end = 1/8, alpha=0.2)
+  colors_blue_static = rainbow(n=N/2, start = 1/1.85, end = 1/1.65, alpha = 0.2)
+  colors_static = c(colors_red_static, colors_blue_static)
+  colors_red_anime = rainbow(n=N/2, start = 1/25, end = 1/8, alpha=1)
+  colors_blue_anime = rainbow(n=N/2, start = 1/1.85, end = 1/1.65, alpha = 1)
+  colors_anime = c(colors_red_anime, colors_blue_anime)
+  target = rchisq(1e5, df = k)
 
   chain = reactiveValues()
   chain$values_dep = matrix(0, nrow = reps, ncol = N)
   chain$values_indep = matrix(0, nrow = reps, ncol = N)
-  chain$time = 1
-  chain$target = rchisq(1e5, df = k)
+
+  plots = reactiveValues()
+  plots$dep_anime = list()
+  plots$dep_static = list()
+  plots$indep_anime = list()
+  plots$indep_static = list()
+  plots$target = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
+    geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
+    labs(title = "Density estimates from fixed") +
+    coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2)) +
+    theme_classic()
 
   control = reactiveValues()
-  control$isRunning = 0
-  control$isStart = 0
-
-  output$playButton = renderUI({
-    if(control$isRunning == 0){
-      actionButton("play", "Play", width = '100%')
-    } else {
-      actionButton("pause", "Pause", width = '100%')
-    }
-  })
-  output$resetButton = renderUI({
-    if(control$isStart == 1){
-      actionButton("reset", "Reset", width = '100%')
-    } else {
-      actionButton("start", "Start", width = '100%')
-    }
-  })
+  control$computed = 0
 
   simulate = function() {
+    dist = input$dist
     h_dep = input$h_dep
     h_indep = input$h_indep
-    if(input$dist == "stat") {
+
+    if(dist == "stat") {
       random.chi = rchisq(reps, df = k)
       for(r in 1:reps) {
         # Stationary starting value
@@ -190,7 +195,7 @@ server = function(input, output) {
         chain$values_indep[r, ] = chisq_mh_indep(N = N, k = k, h = h_indep, start = random.chi[r])
       }
     }
-    else if(input$dist == "exp1") {
+    else if(dist == "exp1") {
       random.exp1 <- rexp(reps, 0.05)
       for(r in 1:reps) {
         # Exp(0.05) starting value
@@ -198,7 +203,7 @@ server = function(input, output) {
         chain$values_indep[r, ] = chisq_mh_indep(N = N, k = k, h = h_indep, start = random.exp1[r])
       }
     }
-    else if(input$dist == "exp2") {
+    else if(dist == "exp2") {
       random.exp2 = rexp(reps, 0.01)
       for(r in 1:reps) {
         # Exp(0.01) starting value
@@ -212,84 +217,70 @@ server = function(input, output) {
         chain$values_indep[r, ] = chisq_mh_indep(N = N, k = k, h = h_indep, start = 3)
       }
     }
-  }
-
-  forward = function() {
-    chain$time = min(chain$time+1, N)
+    p_dep = plots$target
+    p_indep = plots$target
+    for(i in 1:N){
+      p_dep = p_dep + geom_line(data = data.frame(output = chain$values_dep[, i]), mapping = aes(x = output), stat = 'density', color = colors_static[N+1-i])
+      p_indep = p_indep + geom_line(data = data.frame(output = chain$values_indep[, i]), mapping = aes(x = output), stat = 'density', color = colors_static[N+1-i])
+      if(i == N){
+        p_dep = p_dep + geom_line(stat = 'density', linetype = 'dashed')
+        p_indep = p_indep + geom_line(stat = 'density', linetype = 'dashed')
+      }
+      plots$dep_static[[i]] = p_dep
+      plots$indep_static[[i]] = p_indep
+      plots$dep_anime[[i]] = plots$target + geom_line(data = data.frame(output = chain$values_dep[, i]), mapping = aes(x = output), stat = 'density', color = colors_anime[N+1-i])
+      plots$indep_anime[[i]] = plots$target + geom_line(data = data.frame(output = chain$values_indep[, i]), mapping = aes(x = output), stat = 'density', color = colors_anime[N+1-i])
+    }
+    control$computed = 1
   }
 
   observeEvent(input$start, {
-    control$isRunning = 1
-    control$isStart = 1
     simulate()
-    observeEvent(if(control$isRunning) {invalidateLater(1000); TRUE}, {
-      forward()
-    })
-  })
-
-  observeEvent(input$play,{
-    control$isRunning = 1
-    control$isStart = 1
-    if(chain$time == 1){
-      simulate()
-    }
-    observeEvent(if(control$isRunning) {invalidateLater(1000); TRUE}, {
-      forward()
-    })
-  })
-
-  observeEvent(input$pause,{
-    control$isRunning = 0
   })
 
   # when reset button is pressed (set everything to original values)
   observeEvent(input$reset,{
-    control$isRunning = 0
-    control$isStart = 0
     chain$values_dep = matrix(0, nrow = reps, ncol = N)
     chain$values_indep = matrix(0, nrow = reps, ncol = N)
-    chain$time = 1
+    control$computed = 0
   })
-  # main plot
-  output$mh_dependent = renderPlot({
-    plot(density(chain$target), type = 'l', lwd = 2, main = "Density estimates", ylim = c(0,.15), xlab = paste("Number of draws: ", min(chain$time, N)))
-    if(chain$time != 1){
-      for(k in 1:chain$time){
-        lines(density(chain$values_dep[, k]), col = adjustcolor(colors[N+1-k]))
-      }
-      lines(density(chain$target), lty=2, lwd=0.8)
-      # lines(density(chain$values_dep[, chain$time]), lwd = 2, col = adjustcolor("green"))
+
+  time = reactive({ input$time })
+
+  output$computing = renderText({
+    if(control$computed){
+      "Values computed, please press Play. To reset values, press Reset"
+    } else {
+      "To compute values, press Start"
     }
-    legend("topright", col = c("black", "green", "red"), legend = c("target", "current", "prev"),
-           lwd = c(2, 2, 1))
+  })
+  # main plots
+  output$mh_dependent = renderPlot({
+    if(time() == 0 || !control$computed){
+      plots$target
+    } else {
+      plots$dep_anime[[time()]]
+    }
   })
   output$mh_dependent_static = renderPlot({
-    plot(density(chain$target), type = 'l', lwd = 2, main = "Density estimates", ylim = c(0, .15))
-    if(chain$time != 1){
-      for(k in 1:N){
-        lines(density(chain$values_dep[, k]), col = adjustcolor(colors[N+1-k]))
-      }
-      lines(density(chain$target), lty=2, lwd=0.8)
+    if(time() == 0 || !control$computed){
+      plots$target
+    } else {
+      plots$dep_static[[time()]]
     }
   })
   output$mh_independent = renderPlot({
-    plot(density(chain$target), type = 'l', lwd = 2, main = "Density estimates", ylim = c(0,.15), xlab = paste("Number of draws: ", min(chain$time, N)))
-    if(chain$time != 1){
-      for(k in 1:chain$time){
-        lines(density(chain$values_indep[, k]), col = adjustcolor(colors[N+1-k]))
-      }
-      lines(density(chain$target), lty=2, lwd=0.8)
+    if(time() == 0 || !control$computed){
+      plots$target
+    } else {
+      plots$indep_anime[[time()]]
     }
-    legend("topright", col = c("black", "green", "red"), legend = c("target", "current", "prev"),
-           lwd = c(2, 2, 1))
   })
   output$mh_independent_static = renderPlot({
-    plot(density(chain$target), type = 'l', lwd = 2, main = "Density estimates", ylim = c(0, .15))
-    if(chain$time != 1){
-      for(k in 1:N){
-        lines(density(chain$values_indep[, k]), col = adjustcolor(colors[N+1-k]))
-      }
-      lines(density(chain$target), lty=2, lwd=0.8)
+    if(time() == 0 || !control$computed){
+      plots$target
+    } else {
+      plots$indep_static[[time()]]
     }
   })
 }
