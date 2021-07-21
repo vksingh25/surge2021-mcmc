@@ -42,7 +42,73 @@ sidebar = dashboardSidebar(
 )
 
 body = dashboardBody(
-
+  fluidPage(
+    box(
+      title = 'About MCMC Algorithm', width = NULL, status = 'primary',
+      # Everything about selected algorithm
+      textOutput("algoDesc")
+    ),
+    fluidRow(
+      column(
+        width = 9,
+        box(
+          title = "MH Plot", width = NULL,
+          plotOutput("mh_density")
+        )
+      ),
+      column(
+        width = 3,
+        box(
+          title = "About Target", width = NULL,
+          textOutput("aboutTarget")
+        ),
+        box(
+          title = "Slider", width = NULL,
+          sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 10, value = 10)
+        )
+      )
+    ),
+    fluidRow(
+      column(
+        width = 6,
+        box(
+          title = "ACF Plot", width = NULL,
+          "What are ACF Plots, how to read them, etc",
+          plotOutput("mh_acf")
+        )
+      ),
+      column(
+        width = 6,
+        box(
+          title = "Trace Plot", width = NULL,
+          "What are Trace Plots, how to read them, etc",
+          plotOutput("mh_trace")
+        )
+      )
+    ),
+    box(
+      title = 'About Time Evolution', width = NULL, status = 'primary',
+      # Everything about selected algorithm
+      textOutput("timeDesc")
+    ),
+    fluidRow(
+      column(
+        width = 9,
+        tabBox(
+          title = "Figure 1", id = "tabset1", width = NULL,
+          tabPanel(title = "Animation", plotOutput("mh_anime"), value = 1),
+          tabPanel(title = "Static", plotOutput("mh_static"), value = 2)
+        ),
+      ),
+      column(
+        width = 3,
+        box(
+          title = "Slider", width = NULL,
+          sliderInput(inputId = "time", label = "Number of Draws", min = 0, max = 100, value = 0)
+        )
+      )
+    ),
+  )
 )
 
 ui = dashboardPage(
