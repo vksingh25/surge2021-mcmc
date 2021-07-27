@@ -24,9 +24,11 @@
 library(shiny)
 library(shinydashboard)
 library(ggplot2)
+library(shinyjs)
 
 sidebar = dashboardSidebar(
   width = 250,
+  useShinyjs(),
   selectInput(
     "dist", "Target Distribution",
     c(
@@ -35,12 +37,21 @@ sidebar = dashboardSidebar(
       "t-Distribution" = "t.dist"
     )
   ),
-  numericInput("df_chisq", "Chi-squared : df", value = 10, min = 1, max = 20, step = 1),
+  numericInput("df_chisq", "df", value = 10, min = 1, max = 20, step = 1),
+  fluidRow(
+    column(6,
+      numericInput("mean_norm", "Mean", value = 0, min = -10, max = 10),
+    ),
+    column(6,
+      numericInput("sd_norm", "SD", value = 1, min = 0.01, max = 10),
+    )
+  ),
+  numericInput("df_t", "df", value = 1, min = 0.01, max = 10),
   selectInput(
     "kernel", "Update Mechanism",
     c(
-      "Guassian Metropolis Hastings"="mh_dep",
-      "Independent MH"="mh_indep"
+      "Guassian Metropolis Hastings" = "mh_dep",
+      "Independent MH" = "mh_indep"
     )
   ),
   numericInput("h", "Step Size", value = 100, min = 0.05, max = 1000),
@@ -113,12 +124,8 @@ body = dashboardBody(
         width = 3,
         box(
           title = "Slider", width = NULL,
-          sliderInput(inputId = "time", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 300)),
+          sliderInput(inputId = "time", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 350)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
-          # tags$div(class="header", checked=NA,
-          #      tags$p("Ready to take the Shiny tutorial? If so"),
-          #      tags$a(href="shiny.rstudio.com/tutorial", "Click Here!")
-          # )
         )
       )
     )
@@ -132,9 +139,29 @@ ui = dashboardPage(
 )
 
 server = function(input, output) {
-  ###########################################
+
+  observeEvent(input$dist, {
+    switch(input$dist,
+      'chisq' = {
+          shinyjs::hide("mean_norm")
+          shinyjs::hide("sd_norm")
+          shinyjs::show("df_chisq")
+          shinyjs::hide("df_t")
+      },
+      'norm' = {
+        shinyjs::show("mean_norm")
+        shinyjs::show("sd_norm")
+        shinyjs::hide("df_t")
+        shinyjs::hide("df_chisq")
+      },
+      't.dist' = {
+        shinyjs::hide("mean_norm")
+        shinyjs::hide("sd_norm")
+        shinyjs::hide("df_chisq")
+        shinyjs::show("df_t")
+      })
+  })
   # variables required throughout the app
-  ###########################################
   reps = 1e3
   N = 1e2
   colors_red_static = rainbow(n=N/2, start = 1/25, end = 1/8, alpha=0.2)
@@ -143,10 +170,8 @@ server = function(input, output) {
   colors_red_anime = rainbow(n=N/2, start = 1/25, end = 1/8, alpha=1)
   colors_blue_anime = rainbow(n=N/2, start = 1/1.85, end = 1/1.65, alpha = 1)
   colors_anime = c(colors_red_anime, colors_blue_anime)
-  # TODO: make it reactive
-  # target = rchisq(1e5, df = 10)
 
-# reactive variables
+  # reactive variables
   time = reactive({ input$time })
   h = reactive({ input$h })
   dist = reactive({ input$dist })
@@ -155,31 +180,22 @@ server = function(input, output) {
   control = reactiveValues()
   control$computed = 0
 
-  #######################################
   # variables required for app 1
-  #######################################
   density = reactiveValues()
   density$proposal = numeric(length = N)
 
-  #######################################
   # variables required for app 2
-  #######################################
   chain = reactiveValues()
   chain$values = matrix(0, nrow = reps, ncol = N)
   chain$target = numeric(1e5)
-  # plot variables app2
+
+  # plot variables for app 2
   plots = reactiveValues()
   plots$mh_anime = list()
   plots$mh_static = list()
   plots$target = ggplot()
-  # plots$target = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
-  #   geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
-  #   labs(title = "Density estimates from fixed") +
-  #   coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2)) +
-  #   theme_classic()
 
-
-  # returns target densityw
+  # returns target density
   target_den = function(x, dist){
     rtn = 0
     if(dist == 'chisq') {
@@ -278,7 +294,6 @@ server = function(input, output) {
       density.plots(N = N, start = 3, kernel(), dist(), h())
       control$computed = 1
     }
-
   }
 
   observeEvent(input$start, {
