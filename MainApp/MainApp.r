@@ -2,7 +2,6 @@
 "if(FALSE){
   0. TODOs
     0.1 Merge Start and Reset button
-    0.3 Include range slider for plot
     0.2 Return acceptance Probability
     0.3 Starting distribution dropdown addition
     0.n Use C++ for loops
@@ -43,6 +42,7 @@ sidebar = dashboardSidebar(
     )
   ),
   numericInput("h", "Step Size", value = 100, min = 0.05, max = 1000),
+  # uiOutput("startButton"),
   actionButton(inputId = 'start', label = 'Start', width = 220),
   actionButton(inputId = 'reset', label = 'Reset', width = 220)
 )
@@ -102,8 +102,8 @@ body = dashboardBody(
         width = 9,
         tabBox(
           title = "Figure 1", id = "tabset1", width = NULL,
-          tabPanel(title = "Animation", plotOutput("mh_anime"), value = 1),
-          tabPanel(title = "Static", plotOutput("mh_static"), value = 2)
+          tabPanel(title = "Animation", plotOutput("time_anime"), value = 1),
+          tabPanel(title = "Static", plotOutput("time_static"), value = 2)
         ),
       ),
       column(
@@ -125,7 +125,7 @@ ui = dashboardPage(
 
 server = function(input, output) {
   ###########################################
-  # general functions required throughout the app
+  # variables required throughout the app
   ###########################################
   reps = 1e3
   N = 1e2
@@ -138,14 +138,42 @@ server = function(input, output) {
   # TODO: make it reactive
   target = rchisq(1e5, df = 10)
 
-  controls = reactiveValues()
-  controls$computed = 0
+# reactive variables
+  time = reactive({ input$time })
+  h = reactive({ input$h })
+  dist = reactive({ input$dist })
+  kernel = reactive({ input$kernel })
 
-  # returns target density
-  target_den = function(x){
+  control = reactiveValues()
+  control$computed = 0
+
+  #######################################
+  # variables required for app 1
+  #######################################
+  density = reactiveValues()
+  density$proposal = numeric(length = N)
+
+  #######################################
+  # variables required for app 2
+  #######################################
+  chain = reactiveValues()
+  chain$values = matrix(0, nrow = reps, ncol = N)
+  # plot variables app2
+  plots = reactiveValues()
+  plots$mh_anime = list()
+  plots$mh_static = list()
+  plots$target = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
+    geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
+    labs(title = "Density estimates from fixed") +
+    coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2)) +
+    theme_classic()
+
+
+  # returns target densityw
+  target_den = function(x, dist){
     rtn = 0
-    if(input$dist == 'chisq') {
-      k = input$df_chisq
+    if(dist == 'chisq') {
+      k = 10
       if(x > 0) {
         rtn = x^(k/2 - 1) * exp(- x/2)
       } else {
@@ -156,20 +184,20 @@ server = function(input, output) {
   }
 
   # returns proposal values using selected algorithm
-  target_mh = function(N, start = 3){
+  target_mh = function(N, start = 3, kernel, dist, h){
     out = numeric(length = N)
     acc.prob = 0  # acceptance prob
     out[1] = start
     mean = 2
     for(t in 2:N) {
-      if(input$kernel == 'mh_dep'){
+      if(kernel == 'mh_dep'){
         mean = out[t-1]
       }
       # proposal N(x, h). Use sd = sqrt(variance) in R
-      prop = rnorm(1, mean = mean, sd = sqrt(input$h))
+      prop = rnorm(1, mean = mean, sd = sqrt(h))
 
-      # the proposal density gets cancelled here
-      alpha = target_den(x = prop) / target_den(x = out[t-1])
+      # the proposal density gets canceled here
+      alpha = target_den(x = prop, dist) / target_den(x = out[t-1], dist)
 
       U = runif(1)
       if(U <= alpha)  # to decide whether to accept or reject
@@ -181,39 +209,94 @@ server = function(input, output) {
       }
     }
     # print(acc.prob/N)   # we want to see often we accept
-    return(out)
+    return (out)
   }
 
-  #######################################
-  # functions and variables required for app 1
-  #######################################
-  # density = reactiveValues()
-  # density$proposal = target_mh(N, 3)
-  proposal = reactive({
-    target_mh(N = 1e3, start = 3)
+  density.plots = function(N, start, kernel, dist, h) {
+    print("x")
+    for(r in 1:reps){
+      chain$values[r, ] = target_mh(N = N, start = 3, kernel, dist, h)
+      print(r)
+    }
+    p = plots$target
+    for(i in 1:1e2){
+      p = p + geom_line(data = data.frame(output = chain$values[, i]), mapping = aes(x = output), stat = 'density', color = colors_static[N+1-i])
+      if(i == N){
+        p = p + geom_line(stat = 'density', linetype = 'dashed')
+      }
+      plots$mh_static[[i]] = p
+      plots$mh_anime[[i]] = plots$target + geom_line(data = data.frame(output = chain$values[, i]), mapping = aes(x = output), stat = 'density', color = colors_anime[N+1-i])
+    }
+  }
+
+  simulate = function() {
+    if(!control$computed){
+      density$proposal = target_mh(N = N, start = 3, kernel(), dist(), h())
+      print("a")
+      density.plots(N = N, start = 3, kernel(), dist(), h())
+      print("b")
+      control$computed = 1
+    }
+
+  }
+
+  observeEvent(input$start, {
+    if(control$computed == 0){
+      print(control$computed)
+      simulate()
+      print(control$computed)
+    }
   })
+
+  observeEvent(input$reset, {
+    control$computed = 0
+    chain$values = matrix(0, nrow = reps, ncol = N)
+    density$proposal = numeric(length = N)
+  })
+
   # output plots of app 1
-  output$mh_density = renderPlot({
-    ggplot(data = data.frame(output = proposal()), mapping = aes(x = output, color = 'blue', linetype = 'current')) +
-      geom_line(stat = 'density') +
-      geom_line(data = data.frame(target = target), mapping = aes(x = target, color = 'black', linetype = 'target'), stat = 'density', lty = 2) +
-      scale_color_manual(name = 'Legend', values = c('blue' = 'blue', 'black' = 'black'), labels = c('current', 'target')) +
-      scale_linetype_manual(name = 'Legend', values = c('current' = 1, 'target' = 2)) +
-      ylab('Density') + xlab(N) +
-      labs(title = 'Density Plot') +
-      theme_classic()
+    output$mh_density = renderPlot({
+      if(control$computed){
+        ggplot(data = data.frame(output = density$proposal), mapping = aes(x = output, color = 'blue', linetype = 'current')) +
+          geom_line(stat = 'density') +
+          geom_line(data = data.frame(target = target), mapping = aes(x = target, color = 'black', linetype = 'target'), stat = 'density', lty = 2) +
+          scale_color_manual(name = 'Legend', values = c('blue' = 'blue', 'black' = 'black'), labels = c('current', 'target')) +
+          scale_linetype_manual(name = 'Legend', values = c('current' = 1, 'target' = 2)) +
+          ylab('Density') + xlab(N) +
+          labs(title = 'Density Plot') +
+          theme_classic()
+      }
+    })
+    output$mh_acf = renderPlot({
+      if(control$computed){
+        acf(density$proposal, main = "ACF Plot")
+      }
+    })
+    output$mh_trace = renderPlot({
+      if(control$computed){
+        ggplot(data = data.frame(output = density$proposal, time = 1:1e3), mapping = aes(x = time, y = output)) +
+          geom_line() +
+          xlab("Time") + ylab("Proposal") +
+          labs(title = "Trace Plot")
+      }
   })
-  output$mh_acf <- renderPlot({
-    acf(proposal(), main = "ACF Plot")
+
+  # output plots for app 2
+  output$time_anime = renderPlot({
+    if(time() == 0 || !control$computed){
+      plots$target
+    } else {
+      plots$mh_anime[[time()]]
+    }
   })
-  output$mh_trace <- renderPlot({
-    ggplot(data = data.frame(output = proposal(), y = 1:1e3), mapping = aes(x = y, y = output)) +
-      geom_line() +
-      xlab("Time") + ylab("Proposal") +
-      labs(title = "Trace Plot")
+  output$time_static = renderPlot({
+    if(time() == 0 || !control$computed){
+      plots$target
+    } else {
+      plots$mh_static[[time()]]
+    }
   })
 
 }
 
 shinyApp(ui, server)
-
