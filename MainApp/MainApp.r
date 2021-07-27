@@ -30,7 +30,9 @@ sidebar = dashboardSidebar(
   selectInput(
     "dist", "Target Distribution",
     c(
-      "Chi-squared"="chisq"
+      "Chi-squared"="chisq",
+      "Normal" = "norm",
+      "t-Distribution" = "t.dist"
     )
   ),
   numericInput("df_chisq", "Chi-squared : df", value = 10, min = 1, max = 20, step = 1),
@@ -70,7 +72,8 @@ body = dashboardBody(
         ),
         box(
           title = "Slider", width = NULL,
-          sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 10, value = 10)
+          sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 10, value = 10, animate = animationOptions(interval = 1000)),
+          tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
         )
       )
     ),
@@ -110,10 +113,15 @@ body = dashboardBody(
         width = 3,
         box(
           title = "Slider", width = NULL,
-          sliderInput(inputId = "time", label = "Number of Draws", min = 0, max = 100, value = 0)
+          sliderInput(inputId = "time", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 300)),
+          tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
+          # tags$div(class="header", checked=NA,
+          #      tags$p("Ready to take the Shiny tutorial? If so"),
+          #      tags$a(href="shiny.rstudio.com/tutorial", "Click Here!")
+          # )
         )
       )
-    ),
+    )
   )
 )
 
@@ -136,7 +144,7 @@ server = function(input, output) {
   colors_blue_anime = rainbow(n=N/2, start = 1/1.85, end = 1/1.65, alpha = 1)
   colors_anime = c(colors_red_anime, colors_blue_anime)
   # TODO: make it reactive
-  target = rchisq(1e5, df = 10)
+  # target = rchisq(1e5, df = 10)
 
 # reactive variables
   time = reactive({ input$time })
@@ -158,15 +166,17 @@ server = function(input, output) {
   #######################################
   chain = reactiveValues()
   chain$values = matrix(0, nrow = reps, ncol = N)
+  chain$target = numeric(1e5)
   # plot variables app2
   plots = reactiveValues()
   plots$mh_anime = list()
   plots$mh_static = list()
-  plots$target = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
-    geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
-    labs(title = "Density estimates from fixed") +
-    coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2)) +
-    theme_classic()
+  plots$target = ggplot()
+  # plots$target = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
+  #   geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
+  #   labs(title = "Density estimates from fixed") +
+  #   coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2)) +
+  #   theme_classic()
 
 
   # returns target densityw
@@ -179,6 +189,13 @@ server = function(input, output) {
       } else {
         rtn = 0
       }
+    } else if (dist == 'norm') {
+      mean = 0
+      sd = 1
+      rtn = exp(-((x-mean)/sd)^2/2)
+    } else if (dist == 't.dist') {
+      k = 10
+      rtn = (1 + x^2/k) ^ (-(k+1)/2)
     }
     return (rtn)
   }
@@ -212,12 +229,38 @@ server = function(input, output) {
     return (out)
   }
 
+  random.dist = function(N, dist){
+    if(dist == 'chisq'){
+      rtn = rchisq(N, df = 10)
+    } else if (dist == 'norm'){
+      rtn = rnorm(N, mean = 0, sd = 1)
+    } else if (dist == 't.dist'){
+      rtn = rt(N, df = 10)
+    }
+  }
+
+  targetPlot.dist = function(target, dist){
+    p = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
+        geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
+        labs(title = "Density estimates from fixed") +
+        # coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2)) +
+        theme_classic()
+    if(dist == 'chisq'){
+      p = p + coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2))
+    } else if (dist == 'norm') {
+      p = p + coord_cartesian(xlim = c(-8, 8), ylim = c(0, 0.4))
+    } else if (dist == 't.dist') {
+      p = p + coord_cartesian(xlim = c(-10, 10), ylim = c(0, 0.5))
+    }
+    return (p)
+  }
   density.plots = function(N, start, kernel, dist, h) {
-    print("x")
     for(r in 1:reps){
       chain$values[r, ] = target_mh(N = N, start = 3, kernel, dist, h)
       print(r)
     }
+    chain$target = random.dist(1e5, dist)
+    plots$target = targetPlot.dist(chain$target, dist)
     p = plots$target
     for(i in 1:1e2){
       p = p + geom_line(data = data.frame(output = chain$values[, i]), mapping = aes(x = output), stat = 'density', color = colors_static[N+1-i])
@@ -231,10 +274,8 @@ server = function(input, output) {
 
   simulate = function() {
     if(!control$computed){
-      density$proposal = target_mh(N = N, start = 3, kernel(), dist(), h())
-      print("a")
+      density$proposal = target_mh(N = 1e4, start = 3, kernel(), dist(), h())
       density.plots(N = N, start = 3, kernel(), dist(), h())
-      print("b")
       control$computed = 1
     }
 
@@ -242,9 +283,7 @@ server = function(input, output) {
 
   observeEvent(input$start, {
     if(control$computed == 0){
-      print(control$computed)
       simulate()
-      print(control$computed)
     }
   })
 
@@ -252,6 +291,8 @@ server = function(input, output) {
     control$computed = 0
     chain$values = matrix(0, nrow = reps, ncol = N)
     density$proposal = numeric(length = N)
+    chain$target = numeric(1e5)
+    plots$target = ggplot()
   })
 
   # output plots of app 1
@@ -259,10 +300,10 @@ server = function(input, output) {
       if(control$computed){
         ggplot(data = data.frame(output = density$proposal), mapping = aes(x = output, color = 'blue', linetype = 'current')) +
           geom_line(stat = 'density') +
-          geom_line(data = data.frame(target = target), mapping = aes(x = target, color = 'black', linetype = 'target'), stat = 'density', lty = 2) +
+          geom_line(data = data.frame(target = chain$target), mapping = aes(x = target, color = 'black', linetype = 'target'), stat = 'density', lty = 2) +
           scale_color_manual(name = 'Legend', values = c('blue' = 'blue', 'black' = 'black'), labels = c('current', 'target')) +
           scale_linetype_manual(name = 'Legend', values = c('current' = 1, 'target' = 2)) +
-          ylab('Density') + xlab(N) +
+          ylab('Density') + xlab("N = 1e4") +
           labs(title = 'Density Plot') +
           theme_classic()
       }
@@ -283,17 +324,21 @@ server = function(input, output) {
 
   # output plots for app 2
   output$time_anime = renderPlot({
-    if(time() == 0 || !control$computed){
-      plots$target
-    } else {
-      plots$mh_anime[[time()]]
+    if(control$computed){
+      if(time() == 0){
+        plots$target
+      } else {
+        plots$mh_anime[[time()]]
+      }
     }
   })
   output$time_static = renderPlot({
-    if(time() == 0 || !control$computed){
-      plots$target
-    } else {
-      plots$mh_static[[time()]]
+    if(control$computed){
+      if(time() == 0){
+        plots$target
+      } else {
+        plots$mh_static[[time()]]
+      }
     }
   })
 
