@@ -4,6 +4,9 @@
     0.1 Merge Start and Reset button
     0.2 Return acceptance Probability
     0.3 Starting distribution dropdown addition
+    0.4 Center play button
+    0.5 add progress bar when start is clicked
+    0.6 start adding text
     0.n Use C++ for loops
   1. Basic MH demo
     1.1 Select Target (dropdown) : Add Normal(mean, sd)(default), t-dist(df), chi-sq(df) dist as options
@@ -50,7 +53,7 @@ sidebar = dashboardSidebar(
   selectInput(
     "kernel", "Update Mechanism",
     c(
-      "Guassian Metropolis Hastings" = "mh_dep",
+      "Gaussian Metropolis Hastings" = "mh_dep",
       "Independent MH" = "mh_indep"
     )
   ),
@@ -176,6 +179,14 @@ server = function(input, output) {
   h = reactive({ input$h })
   dist = reactive({ input$dist })
   kernel = reactive({ input$kernel })
+  parameters = reactive({
+    x = list(
+      df_chisq = input$df_chisq,
+      df_t = input$df_t,
+      mean_norm = input$mean_norm,
+      sd_norm = input$sd_norm
+    )
+  })
 
   control = reactiveValues()
   control$computed = 0
@@ -196,28 +207,28 @@ server = function(input, output) {
   plots$target = ggplot()
 
   # returns target density
-  target_den = function(x, dist){
+  target_den = function(x, dist, parameters){
     rtn = 0
     if(dist == 'chisq') {
-      k = 10
+      k = parameters$df_chisq
       if(x > 0) {
         rtn = x^(k/2 - 1) * exp(- x/2)
       } else {
         rtn = 0
       }
     } else if (dist == 'norm') {
-      mean = 0
-      sd = 1
+      mean = parameters$mean_norm
+      sd = parameters$sd_norm
       rtn = exp(-((x-mean)/sd)^2/2)
     } else if (dist == 't.dist') {
-      k = 10
+      k = parameters$df_t
       rtn = (1 + x^2/k) ^ (-(k+1)/2)
     }
     return (rtn)
   }
 
   # returns proposal values using selected algorithm
-  target_mh = function(N, start = 3, kernel, dist, h){
+  target_mh = function(N, start = 3, kernel, dist, h, parameters){
     out = numeric(length = N)
     acc.prob = 0  # acceptance prob
     out[1] = start
@@ -230,7 +241,7 @@ server = function(input, output) {
       prop = rnorm(1, mean = mean, sd = sqrt(h))
 
       # the proposal density gets canceled here
-      alpha = target_den(x = prop, dist) / target_den(x = out[t-1], dist)
+      alpha = target_den(x = prop, dist, parameters) / target_den(x = out[t-1], dist, parameters)
 
       U = runif(1)
       if(U <= alpha)  # to decide whether to accept or reject
@@ -245,21 +256,21 @@ server = function(input, output) {
     return (out)
   }
 
-  random.dist = function(N, dist){
+  random.dist = function(N, dist, parameters){
     if(dist == 'chisq'){
-      rtn = rchisq(N, df = 10)
+      rtn = rchisq(N, df = parameters$df_chisq)
     } else if (dist == 'norm'){
-      rtn = rnorm(N, mean = 0, sd = 1)
+      rtn = rnorm(N, mean = parameters$mean_norm, sd = parameters$sd_norm)
     } else if (dist == 't.dist'){
-      rtn = rt(N, df = 10)
+      rtn = rt(N, df = parameters$df_t)
     }
+    return (rtn)
   }
 
   targetPlot.dist = function(target, dist){
     p = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
         geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
         labs(title = "Density estimates from fixed") +
-        # coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2)) +
         theme_classic()
     if(dist == 'chisq'){
       p = p + coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2))
@@ -270,12 +281,12 @@ server = function(input, output) {
     }
     return (p)
   }
-  density.plots = function(N, start, kernel, dist, h) {
+  density.plots = function(N, start, kernel, dist, h, parameters) {
     for(r in 1:reps){
-      chain$values[r, ] = target_mh(N = N, start = 3, kernel, dist, h)
+      chain$values[r, ] = target_mh(N = N, start = 3, kernel, dist, h, parameters)
       print(r)
     }
-    chain$target = random.dist(1e5, dist)
+    chain$target = random.dist(1e5, dist, parameters)
     plots$target = targetPlot.dist(chain$target, dist)
     p = plots$target
     for(i in 1:1e2){
@@ -290,8 +301,8 @@ server = function(input, output) {
 
   simulate = function() {
     if(!control$computed){
-      density$proposal = target_mh(N = 1e4, start = 3, kernel(), dist(), h())
-      density.plots(N = N, start = 3, kernel(), dist(), h())
+      density$proposal = target_mh(N = 1e4, start = 3, kernel(), dist(), h(), parameters())
+      density.plots(N = N, start = 3, kernel(), dist(), h(), parameters())
       control$computed = 1
     }
   }
