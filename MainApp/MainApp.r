@@ -9,9 +9,6 @@
     0.6 start adding text
     0.n Use C++ for loops
   1. Basic MH demo
-    1.1 Select Target (dropdown) : Add Normal(mean, sd)(default), t-dist(df), chi-sq(df) dist as options
-    1.2 Select kernel (dropdown) : (Guassian MH, independent MH)
-    1.2 Select step size (numeric input) for MH
     1.3 Description of how MH works
     1.4 MH Plot (add red green dots later)
     1.5 Description of ACF and TS
@@ -322,6 +319,19 @@ server = function(input, output) {
   })
 
   # output plots of app 1
+    output$algoDesc = renderText({
+      if(kernel() == "mh_dep"){
+        paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
+          The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.
+          The selected Gaussian MH algorithm has transition kernel N(x,", h(), "), where x is the current value of the chain."
+        )
+      } else if (kernel() == "mh_indep") {
+        paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
+          The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.\n
+          The selected Independent MH algorithm has transition kernel N(2,", h(), ")."
+        )
+      }
+    })
     output$mh_density = renderPlot({
       if(control$computed){
         ggplot(data = data.frame(output = density$proposal), mapping = aes(x = output, color = 'blue', linetype = 'current')) +
@@ -334,6 +344,16 @@ server = function(input, output) {
           theme_classic()
       }
     })
+    output$aboutTarget = renderText({
+      if(dist() == 'chisq') {
+        paste("Chi-squared distribution with ", parameters()$df_chisq, " degrees of freedom")
+      } else if (dist() == 'norm') {
+        paste("Normal distribution with mean ", parameters()$mean_norm, " and standard deviation ", parameters()$sd_norm)
+      } else if (dist() == 't.dist') {
+        paste("t-distribution with ", parameters()$df_chisq, " degrees of freedom")
+      }
+    })
+
     output$mh_acf = renderPlot({
       if(control$computed){
         acf(density$proposal, main = "ACF Plot")
@@ -349,6 +369,14 @@ server = function(input, output) {
   })
 
   # output plots for app 2
+  output$timeDesc = renderText({
+    paste("This plot aims to demonstrate the convergence of proposal distribution to target distribution with time.
+      We sample 1000 different and independent Markov chains from the selected starting distribution and run each of them for 100 iterations.
+      Then we plot the marginal density plot of t-th point of the chain using the 1000 different replications.
+      The first tab shows the animation of how the marginal density evolves with time.
+      The second tab shows all the densities from the start till time t for better visualization of the convergence."
+    )
+  })
   output$time_anime = renderPlot({
     if(control$computed){
       if(time() == 0){
