@@ -52,6 +52,14 @@ sidebar = dashboardSidebar(
     )
   ),
   numericInput("h", "Step Size", value = 100, min = 0.05, max = 1000),
+  selectInput(
+    "starting_dist", "Starting Distribution",
+    c(
+      "Fixed at 3" = "fixed",
+      "Exp(0.05)" = "exp1",
+      "Exp(0.01)" = "exp2"
+    )
+  ),
   # uiOutput("startButton"),
   actionButton(inputId = 'start', label = 'Start', width = 220),
   actionButton(inputId = 'reset', label = 'Reset', width = 220)
@@ -197,6 +205,7 @@ server = function(input, output) {
       sd_norm = input$sd_norm
     )
   })
+  starting_dist = reactive({ input$starting_dist })
 
   control = reactiveValues()
   control$computed = 0
@@ -279,6 +288,16 @@ server = function(input, output) {
     }
     return (rtn)
   }
+  starting.draw = function(starting_dist){
+    if(starting_dist == 'fixed'){
+      rtn = 3
+    } else if (starting_dist == 'exp1'){
+      rtn = rexp(1, rate = 0.05)
+    } else if (starting_dist == 'exp2'){
+      rtn = rexp(1, rate = 0.01)
+    }
+    return (rtn)
+  }
 
   targetPlot.dist = function(target, dist){
     p = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
@@ -297,7 +316,7 @@ server = function(input, output) {
 
   density.plots = function(N, start, kernel, dist, h, parameters) {
     for(r in 1:reps){
-      chain$values[r, ] = target_mh(N = N, start = 3, kernel, dist, h, parameters)
+      chain$values[r, ] = target_mh(N = N, start = start, kernel, dist, h, parameters)
       chain$values_stat[r, ] = target_mh(N = N, start = random.dist(1, dist, parameters), kernel, dist, h, parameters)
       print(r)
     }
@@ -321,8 +340,8 @@ server = function(input, output) {
 
   simulate = function() {
     if(!control$computed){
-      density$proposal = target_mh(N = 1e4, start = 3, kernel(), dist(), h(), parameters())
-      density.plots(N = N, start = 3, kernel(), dist(), h(), parameters())
+      density$proposal = target_mh(N = 1e4, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
+      density.plots(N = N, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       control$computed = 1
     }
   }
