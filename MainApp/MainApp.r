@@ -1,12 +1,11 @@
 # Stuff left to do!
 "if(FALSE){
   0. TODOs
-    0.6 start adding text
+    0.6 write full app description in about section (starting of the app)
     0.1 Merge Start and Reset button
     0.4 Center play button
-    0.2 Return acceptance Probability
-    0.3 Starting distribution dropdown addition
     0.5 add progress bar when start is clicked
+    0.2 Return acceptance Probability
     0.n Use C++ for loops
   1. Basic MH demo
     1.4 MH Plot (add red green dots later)
@@ -68,9 +67,9 @@ sidebar = dashboardSidebar(
 body = dashboardBody(
   fluidPage(
     box(
-      title = 'About MCMC Algorithm', width = NULL, status = 'primary',
-      # Everything about selected algorithm
-      textOutput("algoDesc")
+      title = 'About the app', width = NULL, status = 'primary',
+      # Everything about the app, how to use it, etc
+      textOutput("about_app")
     ),
     fluidRow(
       column(
@@ -128,6 +127,10 @@ body = dashboardBody(
       column(
         width = 3,
         box(
+          title = "About Stationarity", width = NULL,
+          "All about stationarity",
+        ),
+        box(
           title = "Slider", width = NULL,
           sliderInput(inputId = "time_stat", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 350)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
@@ -136,13 +139,17 @@ body = dashboardBody(
       column(
         width = 9,
         tabBox(
-          title = "Figure 2", id = "tabset2", width = NULL,
+          title = "Ergodic", id = "tabset2", width = NULL,
           tabPanel(title = "Animation", plotOutput("time_anime"), value = 1),
           tabPanel(title = "Static", plotOutput("time_static"), value = 2)
         ),
       ),
       column(
         width = 3,
+        box(
+          title = "About Ergodicity", width = NULL,
+          "All about ergodicity",
+        ),
         box(
           title = "Slider", width = NULL,
           sliderInput(inputId = "time", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 350)),
@@ -362,18 +369,23 @@ server = function(input, output) {
   })
 
   # output plots of app 1
-    output$algoDesc = renderText({
-      if(kernel() == "mh_dep"){
-        paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
-          The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.
-          The selected Gaussian MH algorithm has transition kernel N(x,", h(), "), where x is the current value of the chain."
-        )
-      } else if (kernel() == "mh_indep") {
-        paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
-          The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.\n
-          The selected Independent MH algorithm has transition kernel N(2,", h(), ")."
-        )
-      }
+    # output$algoDesc = renderText({
+    #   if(kernel() == "mh_dep"){
+    #     paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
+    #       The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.
+    #       The selected Gaussian MH algorithm has transition kernel N(x,", h(), "), where x is the current value of the chain."
+    #     )
+    #   } else if (kernel() == "mh_indep") {
+    #     paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
+    #       The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.\n
+    #       The selected Independent MH algorithm has transition kernel N(2,", h(), ")."
+    #     )
+    #   }
+    # })
+    output$about_app = renderText({
+      # Learn how to write HTML
+      # Need to discuss this again. Oops!
+      paste("About the app. \n Contents of the app")
     })
     output$mh_density = renderPlot({
       if(control$computed){
