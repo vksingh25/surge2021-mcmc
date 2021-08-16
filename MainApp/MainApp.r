@@ -1,19 +1,16 @@
 # Stuff left to do!
 "if(FALSE){
   0. TODOs
+    0.6 start adding text
     0.1 Merge Start and Reset button
+    0.4 Center play button
     0.2 Return acceptance Probability
     0.3 Starting distribution dropdown addition
-    0.4 Center play button
     0.5 add progress bar when start is clicked
-    0.6 start adding text
     0.n Use C++ for loops
   1. Basic MH demo
-    1.3 Description of how MH works
     1.4 MH Plot (add red green dots later)
     1.5 Description of ACF and TS
-    1.6 ACF and TF in the row
-  2. Animation applet
   3. Law of Large Numbers
   4. CLT
   5. Credits and stuff
@@ -115,7 +112,23 @@ body = dashboardBody(
       column(
         width = 9,
         tabBox(
-          title = "Figure 1", id = "tabset1", width = NULL,
+          title = "Stationary", id = "tabset1", width = NULL,
+          tabPanel(title = "Animation", plotOutput("time_anime_stat"), value = 1),
+          tabPanel(title = "Static", plotOutput("time_static_stat"), value = 2)
+        ),
+      ),
+      column(
+        width = 3,
+        box(
+          title = "Slider", width = NULL,
+          sliderInput(inputId = "time_stat", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 350)),
+          tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
+        )
+      ),
+      column(
+        width = 9,
+        tabBox(
+          title = "Figure 2", id = "tabset2", width = NULL,
           tabPanel(title = "Animation", plotOutput("time_anime"), value = 1),
           tabPanel(title = "Static", plotOutput("time_static"), value = 2)
         ),
@@ -195,10 +208,13 @@ server = function(input, output) {
   # variables required for app 2
   chain = reactiveValues()
   chain$values = matrix(0, nrow = reps, ncol = N)
+  chain$values_stat = matrix(0, nrow = reps, ncol = N)
   chain$target = numeric(1e5)
 
   # plot variables for app 2
   plots = reactiveValues()
+  plots$mh_anime_stat = list()
+  plots$mh_static_stat = list()
   plots$mh_anime = list()
   plots$mh_static = list()
   plots$target = ggplot()
@@ -278,21 +294,28 @@ server = function(input, output) {
     }
     return (p)
   }
+
   density.plots = function(N, start, kernel, dist, h, parameters) {
     for(r in 1:reps){
       chain$values[r, ] = target_mh(N = N, start = 3, kernel, dist, h, parameters)
+      chain$values_stat[r, ] = target_mh(N = N, start = random.dist(1, dist, parameters), kernel, dist, h, parameters)
       print(r)
     }
     chain$target = random.dist(1e5, dist, parameters)
     plots$target = targetPlot.dist(chain$target, dist)
     p = plots$target
+    p_stat = plots$target
     for(i in 1:1e2){
       p = p + geom_line(data = data.frame(output = chain$values[, i]), mapping = aes(x = output), stat = 'density', color = colors_static[N+1-i])
+      p_stat = p_stat + geom_line(data = data.frame(output = chain$values_stat[, i]), mapping = aes(x = output), stat = 'density', color = colors_static[N+1-i])
       if(i == N){
         p = p + geom_line(stat = 'density', linetype = 'dashed')
+        p_stat = p_stat + geom_line(stat = 'density', linetype = 'dashed')
       }
       plots$mh_static[[i]] = p
       plots$mh_anime[[i]] = plots$target + geom_line(data = data.frame(output = chain$values[, i]), mapping = aes(x = output), stat = 'density', color = colors_anime[N+1-i])
+      plots$mh_static_stat[[i]] = p_stat
+      plots$mh_anime_stat[[i]] = plots$target + geom_line(data = data.frame(output = chain$values_stat[, i]), mapping = aes(x = output), stat = 'density', color = colors_anime[N+1-i])
     }
   }
 
@@ -313,6 +336,7 @@ server = function(input, output) {
   observeEvent(input$reset, {
     control$computed = 0
     chain$values = matrix(0, nrow = reps, ncol = N)
+    chain$values_stat = matrix(0, nrow = reps, ncol = N)
     density$proposal = numeric(length = N)
     chain$target = numeric(1e5)
     plots$target = ggplot()
@@ -377,6 +401,25 @@ server = function(input, output) {
       The second tab shows all the densities from the start till time t for better visualization of the convergence."
     )
   })
+  output$time_anime_stat = renderPlot({
+    if(control$computed){
+      if(time() == 0){
+        plots$target
+      } else {
+        plots$mh_anime_stat[[time()]]
+      }
+    }
+  })
+  output$time_static_stat = renderPlot({
+    if(control$computed){
+      if(time() == 0){
+        plots$target
+      } else {
+        plots$mh_static_stat[[time()]]
+      }
+    }
+  })
+
   output$time_anime = renderPlot({
     if(control$computed){
       if(time() == 0){
