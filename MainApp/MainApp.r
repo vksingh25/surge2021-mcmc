@@ -71,12 +71,22 @@ body = dashboardBody(
       # Everything about the app, how to use it, etc
       textOutput("about_app")
     ),
+    box(
+      title = 'About Markov chain Monte Carlo Algorithm', width = NULL, status = 'primary',
+      # Everything about the app, how to use it, etc
+      textOutput("algo_desc")
+    ),
     fluidRow(
       column(
         width = 9,
         box(
           title = "MH Plot", width = NULL,
           plotOutput("mh_density")
+        )
+        tabBox(
+          title = "MH_plot", id = "tabset_app1", width = NULL,
+          tabPanel(title = "Static", plotOutput("mh_density"), value = 1),
+          tabPanel(title = "Animation", plotOutput("mh_density_anime"), value = 2)
         )
       ),
       column(
@@ -119,7 +129,7 @@ body = dashboardBody(
       column(
         width = 9,
         tabBox(
-          title = "Stationary", id = "tabset1", width = NULL,
+          title = "Stationary", id = "tabset_app2.1", width = NULL,
           tabPanel(title = "Animation", plotOutput("time_anime_stat"), value = 1),
           tabPanel(title = "Static", plotOutput("time_static_stat"), value = 2)
         ),
@@ -139,7 +149,7 @@ body = dashboardBody(
       column(
         width = 9,
         tabBox(
-          title = "Ergodic", id = "tabset2", width = NULL,
+          title = "Ergodic", id = "tabset_app2.2", width = NULL,
           tabPanel(title = "Animation", plotOutput("time_anime"), value = 1),
           tabPanel(title = "Static", plotOutput("time_static"), value = 2)
         ),
@@ -220,6 +230,7 @@ server = function(input, output) {
   # variables required for app 1
   density = reactiveValues()
   density$proposal = numeric(length = N)
+  density$acc.prob = 1
 
   # variables required for app 2
   chain = reactiveValues()
@@ -257,9 +268,13 @@ server = function(input, output) {
   }
 
   # returns proposal values using selected algorithm
-  target_mh = function(N, start = 3, kernel, dist, h, parameters){
-    out = numeric(length = N)
-    acc.prob = 0  # acceptance prob
+  target_mh = function(N, start = 3, kernel, dist, h, parameters, acc_prob = FALSE){
+    if(acc_prob){
+      out = numeric(length = N+1)
+    } else {
+      out = numeric(length = N)
+    }
+    acc.prob = 1  # acceptance prob
     out[1] = start
     mean = 2
     for(t in 2:N) {
@@ -281,7 +296,10 @@ server = function(input, output) {
         out[t] = out[t-1]
       }
     }
-    # print(acc.prob/N)   # we want to see often we accept
+    if(acc_prob){
+      out[N+1] = acc.prob / N
+      print(acc.prob/N)
+    }
     return (out)
   }
 
@@ -295,6 +313,7 @@ server = function(input, output) {
     }
     return (rtn)
   }
+
   starting.draw = function(starting_dist){
     if(starting_dist == 'fixed'){
       rtn = 3
@@ -323,8 +342,8 @@ server = function(input, output) {
 
   density.plots = function(N, start, kernel, dist, h, parameters) {
     for(r in 1:reps){
-      chain$values[r, ] = target_mh(N = N, start = start, kernel, dist, h, parameters)
-      chain$values_stat[r, ] = target_mh(N = N, start = random.dist(1, dist, parameters), kernel, dist, h, parameters)
+      chain$values[r, ] = target_mh(N = N, start = start, kernel, dist, h, parameters, acc_prob = FALSE)
+      chain$values_stat[r, ] = target_mh(N = N, start = random.dist(1, dist, parameters), kernel, dist, h, parameters, acc_prob = FALSE)
       print(r)
     }
     chain$target = random.dist(1e5, dist, parameters)
@@ -347,7 +366,10 @@ server = function(input, output) {
 
   simulate = function() {
     if(!control$computed){
-      density$proposal = target_mh(N = 1e4, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
+      samp_size = 1e4
+      proposed_and_acc = target_mh(N = 1e4, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters(), acc_prob = TRUE)
+      density$proposal = proposed_and_acc[-samp_size+1]
+      density$acc.prob = proposed_and_acc[samp_size+1]
       density.plots(N = N, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       control$computed = 1
     }
@@ -364,29 +386,32 @@ server = function(input, output) {
     chain$values = matrix(0, nrow = reps, ncol = N)
     chain$values_stat = matrix(0, nrow = reps, ncol = N)
     density$proposal = numeric(length = N)
+    density$acc.prob = 1
     chain$target = numeric(1e5)
     plots$target = ggplot()
   })
 
   # output plots of app 1
-    # output$algoDesc = renderText({
-    #   if(kernel() == "mh_dep"){
-    #     paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
-    #       The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.
-    #       The selected Gaussian MH algorithm has transition kernel N(x,", h(), "), where x is the current value of the chain."
-    #     )
-    #   } else if (kernel() == "mh_indep") {
-    #     paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
-    #       The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.\n
-    #       The selected Independent MH algorithm has transition kernel N(2,", h(), ")."
-    #     )
-    #   }
-    # })
     output$about_app = renderText({
       # Learn how to write HTML
       # Need to discuss this again. Oops!
       paste("About the app. \n Contents of the app")
     })
+
+    output$algo_desc = renderText({
+      if(kernel() == "mh_dep"){
+        paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
+          The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.
+          The selected Gaussian MH algorithm has transition kernel N(x,", h(), "), where x is the current value of the chain."
+        )
+      } else if (kernel() == "mh_indep") {
+        paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
+          The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.\n
+          The selected Independent MH algorithm has transition kernel N(2,", h(), ")."
+        )
+      }
+    })
+
     output$mh_density = renderPlot({
       if(control$computed){
         ggplot(data = data.frame(output = density$proposal), mapping = aes(x = output, color = 'blue', linetype = 'current')) +
@@ -399,6 +424,7 @@ server = function(input, output) {
           theme_classic()
       }
     })
+
     output$aboutTarget = renderText({
       if(dist() == 'chisq') {
         paste("Chi-squared distribution with ", parameters()$df_chisq, " degrees of freedom")
@@ -414,6 +440,7 @@ server = function(input, output) {
         acf(density$proposal, main = "ACF Plot")
       }
     })
+
     output$mh_trace = renderPlot({
       if(control$computed){
         ggplot(data = data.frame(output = density$proposal, time = 1:1e3), mapping = aes(x = time, y = output)) +
@@ -432,6 +459,7 @@ server = function(input, output) {
       The second tab shows all the densities from the start till time t for better visualization of the convergence."
     )
   })
+
   output$time_anime_stat = renderPlot({
     if(control$computed){
       if(time() == 0){
@@ -441,6 +469,7 @@ server = function(input, output) {
       }
     }
   })
+
   output$time_static_stat = renderPlot({
     if(control$computed){
       if(time() == 0){
@@ -460,6 +489,7 @@ server = function(input, output) {
       }
     }
   })
+
   output$time_static = renderPlot({
     if(control$computed){
       if(time() == 0){
