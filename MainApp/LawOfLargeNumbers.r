@@ -49,20 +49,18 @@ for(r in 1:reps){
 }
 
 running.mean = matrix(0, nrow = N, ncol = reps)
-for(i in 1:N){
-  for(j in 1:reps){
-    running.mean[i, j] = mean(chain.fixed[1:i, j])
-  }
+running.mean[1, ] = chain.fixed[1, ]
+for(i in 2:N){
+  running.mean[i, ] = colMeans(x = chain.fixed[1:i, ])
 }
 
-print(chain.fixed[90:100, 1])
-print(running.mean[900:1000, 1] - running.mean[900:1000, 4])
 df = data.frame(data = running.mean, draws = 1:N)
 for(i in 1:reps){
   colnames(df)[i] = paste("Chain", i)
 }
-colnames(df)
+
 df1 = melt(df, id.vars = 'draws', variable.name = 'Chains')
+
 ggplot(df1, mapping = aes(draws, value)) +
   geom_line(aes(color = Chains)) +
   geom_line(mapping = aes(y = 10), lty = 2, size = 1) +
