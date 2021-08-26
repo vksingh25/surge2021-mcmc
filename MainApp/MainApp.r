@@ -1,6 +1,7 @@
 # Stuff left to do!
 "if(FALSE){
   0. TODOs
+    0.7 Change target density plots from random draws to using density function
     0.6 write full app description in about section (starting of the app)
     0.1 Merge Start and Reset button
     0.4 Center play button
@@ -8,14 +9,11 @@
     0.2 Return acceptance Probability
     0.n Use C++ for loops
   1. Basic MH demo
-    1.4 MH Plot (add red green dots later)
     1.5 Description of ACF and TS
   3. Law of Large Numbers
   4. CLT
   5. Credits and stuff
 }"
-
-
 
 library(shiny)
 library(shinydashboard)
@@ -79,10 +77,6 @@ body = dashboardBody(
     fluidRow(
       column(
         width = 9,
-        box(
-          title = "MH Plot", width = NULL,
-          plotOutput("mh_density")
-        )
         tabBox(
           title = "MH_plot", id = "tabset_app1", width = NULL,
           tabPanel(title = "Static", plotOutput("mh_density"), value = 1),
@@ -97,7 +91,7 @@ body = dashboardBody(
         ),
         box(
           title = "Slider", width = NULL,
-          sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 10, value = 10, animate = animationOptions(interval = 1000)),
+          sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 20, value = 1, animate = animationOptions(interval = 1000)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
         )
       )
@@ -132,7 +126,7 @@ body = dashboardBody(
           title = "Stationary", id = "tabset_app2.1", width = NULL,
           tabPanel(title = "Animation", plotOutput("time_anime_stat"), value = 1),
           tabPanel(title = "Static", plotOutput("time_static_stat"), value = 2)
-        ),
+        )
       ),
       column(
         width = 3,
@@ -202,6 +196,7 @@ server = function(input, output) {
   # variables required throughout the app
   reps = 1e3
   N = 1e2
+  N_anime = 20
   colors_red_static = rainbow(n=N/2, start = 1/25, end = 1/8, alpha=0.2)
   colors_blue_static = rainbow(n=N/2, start = 1/1.85, end = 1/1.65, alpha = 0.2)
   colors_static = c(colors_red_static, colors_blue_static)
@@ -211,6 +206,7 @@ server = function(input, output) {
 
   # reactive variables
   time = reactive({ input$time })
+  targetAnimation = reactive({ input$targetAnimation })
   h = reactive({ input$h })
   dist = reactive({ input$dist })
   kernel = reactive({ input$kernel })
@@ -231,6 +227,10 @@ server = function(input, output) {
   density = reactiveValues()
   density$proposal = numeric(length = N)
   density$acc.prob = 1
+  density$acc = numeric(length = N_anime)
+  density$prop = numeric(length = N_anime)
+  density$samp = numeric(length = N_anime)
+  density$plots = list()
 
   # variables required for app 2
   chain = reactiveValues()
@@ -303,6 +303,66 @@ server = function(input, output) {
     return (out)
   }
 
+  # returns accept reject animation plots
+  acceptReject_mh = function(N_anime, start = 3, kernel, dist, h, parameters){
+    samp = numeric(length = N_anime)
+    prop = numeric(length = N_anime)
+    acc = numeric(length = N_anime)
+
+    acc[1] = 1
+    samp[1] = start
+    prop[1] = start
+    mean = 2
+    for(t in 2:N){
+      if(kernel == 'mh_dep'){
+        mean = samp[t-1]
+      }
+      prop[t] = rnorm(1, mean = mean, sd = sqrt(h))
+      alpha = target_den(x = prop[t], dist, parameters) / target_den(x = samp[t-1], dist, parameters)
+      U = runif(1)
+      if(U <= alpha){
+        samp[t] = prop[t]
+        acc[t] = 1
+      } else {
+        samp[t] = samp[t-1]
+        acc[t] = 0
+      }
+    }
+    colors = ifelse(acc, "blue", "red")
+    target_curve = random.dist(1e4, dist, parameters)
+    plots = list()
+    plots[[1]] = ggplot(data = data.frame(target = target_curve), mapping = aes(x = target)) +
+      geom_line(stat = 'density', lty = 2) +
+      geom_point(data = data.frame(x = prop[1], y = numeric(length = 1)), mapping = aes(x = x, y = y), colour = 'green') +
+      scale_color_manual(name = "Legend", values = c('blue' = 'blue', 'red' = 'red'), labels = c('red' = 'reject', 'blue' = 'accept')) +
+      coord_cartesian(xlim = c(-20, 50), ylim = c(0, 0.2)) +
+      theme_classic()
+    counter = 2
+    for(i in 2:N_anime){
+      p_temp = ggplot(data = data.frame(target = target_curve), mapping = aes(x = target)) +
+        geom_line(stat = 'density', lty = 2) +
+        geom_point(data = data.frame(x = prop[1:i-1], y = numeric(length = i-1)), mapping = aes(x = x, y = y), colour = colors[1:i-1]) +
+        scale_color_manual(name = "Legend", values = c('blue' = 'blue', 'red' = 'red'), labels = c('red' = 'reject', 'blue' = 'accept')) +
+        coord_cartesian(xlim = c(-20, 50), ylim = c(0, 0.2)) +
+        theme_classic()
+      mean = 2
+      if(jernel == 'mh_dep'){
+        mean = samp[i-1]
+      }
+      prop_curve = rnorm(1e5, mean = mean, sd = sqrt(h))
+      plots[[counter]] = p_temp +
+        geom_line(data = data.frame(target = prop_curve), mapping = aes(x = target), stat = 'density', color = 'grey') +
+        geom_point(mapping = aes(x = prop[i], y = 0), colour = 'grey')
+      counter = counter + 1
+      color_curr = ifelse(acc[i], 'green', 'red')
+      plots[[counter]] = p_temp +
+        geom_line(data = data.frame(target = prop_curve), mapping = aes(x = target), stat = 'density', color = color_curr) +
+        geom_point(mapping = aes(x = prop[i], y = 0), colour = color_curr)
+      counter = counter + 1
+      }
+    return (plots)
+  }
+
   random.dist = function(N, dist, parameters){
     if(dist == 'chisq'){
       rtn = rchisq(N, df = parameters$df_chisq)
@@ -372,6 +432,7 @@ server = function(input, output) {
       density$acc.prob = proposed_and_acc[samp_size+1]
       density.plots(N = N, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       control$computed = 1
+      density$plots = acceptReject_mh(N_anime = 20, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
     }
   }
 
@@ -425,6 +486,11 @@ server = function(input, output) {
       }
     })
 
+    output$mh_density_anime = renderPlot({
+      if(control$computed){
+        density$plots[[targetAnimation()]]
+      }
+    })
     output$aboutTarget = renderText({
       if(dist() == 'chisq') {
         paste("Chi-squared distribution with ", parameters()$df_chisq, " degrees of freedom")
