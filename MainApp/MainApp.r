@@ -19,6 +19,7 @@ library(shiny)
 library(shinydashboard)
 library(ggplot2)
 library(shinyjs)
+library(reshape2)
 
 sidebar = dashboardSidebar(
   width = 250,
@@ -40,7 +41,7 @@ sidebar = dashboardSidebar(
       numericInput("sd_norm", "SD", value = 1, min = 0.01, max = 10),
     )
   ),
-  numericInput("df_t", "df", value = 1, min = 0.01, max = 10),
+  numericInput("df_t", "df", value = 10, min = 0.01, max = 10),
   selectInput(
     "kernel", "Update Mechanism",
     c(
@@ -160,6 +161,15 @@ body = dashboardBody(
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
         )
       )
+    ),
+    box(
+      title = 'About Strong Law of Large Numbers', width = NULL, status = 'primary',
+      "Strong law of large numbers"
+    ),
+    box(
+      title = 'Strong Law of Large Numbers', id = 'slln', width = NULL,
+      "How to read slln curves",
+      plotOutput("slln")
     )
   )
 )
@@ -237,6 +247,11 @@ server = function(input, output) {
   chain$values = matrix(0, nrow = reps, ncol = N)
   chain$values_stat = matrix(0, nrow = reps, ncol = N)
   chain$target = numeric(1e5)
+
+  lln = reactiveValues()
+  lln$values = matrix(0, nrow = 1e3*5, ncol = 10)
+  lln$runningMean = matrix(0, nrow = 1e3*5, ncol = 10)
+  lln$mean = 10
 
   # plot variables for app 2
   plots = reactiveValues()
@@ -346,7 +361,7 @@ server = function(input, output) {
         coord_cartesian(xlim = c(-20, 50), ylim = c(0, 0.2)) +
         theme_classic()
       mean = 2
-      if(jernel == 'mh_dep'){
+      if(kernel == 'mh_dep'){
         mean = samp[i-1]
       }
       prop_curve = rnorm(1e5, mean = mean, sd = sqrt(h))
@@ -424,6 +439,34 @@ server = function(input, output) {
     }
   }
 
+  calculateMeanDistribution = function(dist, parameters){
+    if(dist == 'chisq'){
+      rtn = parameters$df_chisq
+    } else if (dist == 'norm'){
+      rtn = parameters$mean_norm
+    } else if (dist == 't.dist'){
+      rtn = 0
+    }
+    return (rtn)
+  }
+  drawIndependentChains = function(N, reps, start, kernel, dist, h, parameters){
+    chains = matrix(0, nrow = N, ncol = reps)
+    for(r in 1:reps){
+      chains[, r] = target_mh(N, start, kernel, dist, h, parameters, acc_prob = FALSE)
+    }
+    return (chains)
+  }
+
+  calculateRunningMean = function(N, reps, chains){
+    running.mean = matrix(0, nrow = N, ncol = reps)
+    running.mean[1, ] = chains[1, ]
+    for(i in 2:N){
+      running.mean[i, ] = colMeans(x = chains[1:i, ])
+    }
+    return(running.mean)
+  }
+
+
   simulate = function() {
     if(!control$computed){
       samp_size = 1e4
@@ -433,6 +476,8 @@ server = function(input, output) {
       density.plots(N = N, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       control$computed = 1
       density$plots = acceptReject_mh(N_anime = 20, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
+      lln$values = drawIndependentChains(N = 1e3*5, reps = 10, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
+      lln$runningMean = calculateRunningMean(N = 1e3*5, reps = 10, chains = lln$values)
     }
   }
 
@@ -450,6 +495,8 @@ server = function(input, output) {
     density$acc.prob = 1
     chain$target = numeric(1e5)
     plots$target = ggplot()
+    lln$values = matrix(0, nrow = 1e3*5, ncol = 10)
+    lln$runningMean = matrix(0, nrow = 1e3*5, ncol = 10)
   })
 
   # output plots of app 1
@@ -566,6 +613,22 @@ server = function(input, output) {
     }
   })
 
+  output$slln = renderPlot({
+    if(control$computed){
+      N = 1e3*5
+      reps = 10
+      df = data.frame(data = lln$runningMean, draws = 1:N)
+      for(i in 1:reps){
+        colnames(df)[i] = paste("Chain", i)
+      }
+      df1 = melt(df, id.vars = 'draws', variable.name = 'Chains')
+      ggplot(df1, mapping = aes(draws, value)) +
+        geom_line(aes(color = Chains)) +
+        geom_line(mapping = aes(y = lln$mean), lty = 2, size = 1) +
+        theme_classic() +
+        theme(legend.position = 'none')
+    }
+  })
 }
 
 shinyApp(ui, server)
