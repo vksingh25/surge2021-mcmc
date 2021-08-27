@@ -449,6 +449,7 @@ server = function(input, output) {
     }
     return (rtn)
   }
+
   drawIndependentChains = function(N, reps, start, kernel, dist, h, parameters){
     chains = matrix(0, nrow = N, ncol = reps)
     for(r in 1:reps){
@@ -465,7 +466,6 @@ server = function(input, output) {
     }
     return(running.mean)
   }
-
 
   simulate = function() {
     if(!control$computed){
@@ -502,8 +502,11 @@ server = function(input, output) {
   # output plots of app 1
     output$about_app = renderText({
       # Learn how to write HTML
-      # Need to discuss this again. Oops!
-      paste("About the app. \n Contents of the app")
+      # Need to learn how to include LaTeX
+      paste("Markov chain Monte Carlo is a technique that is used to draw samples from complicated probability distributions which can be of very high dimensions. Often we only have access to the unnormalised probability density function of our target distribution.
+        Our target is to draw samples from these distributions that are close to being independent and identically distributed.
+        Our applet tries to motivate the idea behind MCMC by applying algoritms on well known distributions.
+        We have a series of plots in this applet starting from demonstrating the convergence of Metropolis-Hastings algorithm and an animation that shows how it actually works. The next two plots, Autocorrelation function and Trace plot, which shows how \"good\" our draws actually are. The next plot aims to introduce the concept of stationarity and ergodicity of Markov chains. After that we have two more plots which demonstrates two very important theorems, the Strong Law of Large Numbers and the Central Limit Theorem.")
     })
 
     output$algo_desc = renderText({
