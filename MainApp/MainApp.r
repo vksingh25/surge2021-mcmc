@@ -1,19 +1,19 @@
 # Stuff left to do!
-"if(FALSE){
-  0. TODOs
-    0.7 Change target density plots from random draws to using density function
-    0.6 write full app description in about section (starting of the app)
-    0.1 Merge Start and Reset button
-    0.4 Center play button
-    0.5 add progress bar when start is clicked
-    0.2 Return acceptance Probability
-    0.n Use C++ for loops
-  1. Basic MH demo
-    1.5 Description of ACF and TS
-  3. Law of Large Numbers
-  4. CLT
-  5. Credits and stuff
-}"
+# "if(FALSE){
+#   0. TODOs
+#     0.7 Change target density plots from random draws to using density function
+#     0.6 write full app description in about section (starting of the app)
+#     0.1 Merge Start and Reset button
+#     0.4 Center play button
+#     0.5 add progress bar when start is clicked
+#     0.2 Return acceptance Probability
+#     0.n Use C++ for loops
+#   1. Basic MH demo
+#     1.5 Description of ACF and TS
+#   3. Law of Large Numbers
+#   4. CLT
+#   5. Credits and stuff
+# }"
 
 library(shiny)
 library(shinydashboard)
@@ -71,7 +71,7 @@ body = dashboardBody(
       textOutput("about_app")
     ),
     box(
-      title = 'About Markov chain Monte Carlo Algorithm', width = NULL, status = 'primary',
+      title = 'About Metropolis Hastings algorithm', width = NULL, status = 'primary',
       # Everything about the app, how to use it, etc
       textOutput("algo_desc")
     ),
@@ -92,7 +92,7 @@ body = dashboardBody(
         ),
         box(
           title = "Slider", width = NULL,
-          sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 20, value = 1, animate = animationOptions(interval = 1000)),
+          sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 20, value = 1, animate = animationOptions(interval = 1500)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
         )
       )
@@ -137,7 +137,7 @@ body = dashboardBody(
         ),
         box(
           title = "Slider", width = NULL,
-          sliderInput(inputId = "time_stat", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 350)),
+          sliderInput(inputId = "time_stat", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 750)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
         )
       ),
@@ -512,13 +512,17 @@ server = function(input, output) {
     output$algo_desc = renderText({
       if(kernel() == "mh_dep"){
         paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
-          The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.
-          The selected Gaussian MH algorithm has transition kernel N(x,", h(), "), where x is the current value of the chain."
+          This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.
+          In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution.
+          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(x,", h(), "), where x is the current value of the Markov chain), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal."
+
         )
       } else if (kernel() == "mh_indep") {
         paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
-          The algorithm works by simulating a Markov chain whose stationary distribution is the target distribution, i.e. eventually the samples from the Markov chain will look similar to samples from the target.\n
-          The selected Independent MH algorithm has transition kernel N(2,", h(), ")."
+          This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.
+          In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution.
+          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(2,", h(), ")), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal."
+
         )
       }
     })
@@ -541,6 +545,7 @@ server = function(input, output) {
         density$plots[[targetAnimation()]]
       }
     })
+
     output$aboutTarget = renderText({
       if(dist() == 'chisq') {
         paste("Chi-squared distribution with ", parameters()$df_chisq, " degrees of freedom")
