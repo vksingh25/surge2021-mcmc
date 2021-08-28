@@ -102,7 +102,7 @@ body = dashboardBody(
         width = 6,
         box(
           title = "ACF Plot", width = NULL,
-          "What are ACF Plots, how to read them, etc",
+          "",
           plotOutput("mh_acf")
         )
       ),
@@ -110,7 +110,7 @@ body = dashboardBody(
         width = 6,
         box(
           title = "Trace Plot", width = NULL,
-          "What are Trace Plots, how to read them, etc",
+          "",
           plotOutput("mh_trace")
         )
       )
@@ -157,7 +157,7 @@ body = dashboardBody(
         ),
         box(
           title = "Slider", width = NULL,
-          sliderInput(inputId = "time", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 350)),
+          sliderInput(inputId = "time", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 750)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
         )
       )
@@ -256,9 +256,9 @@ server = function(input, output) {
   # plot variables for app 2
   plots = reactiveValues()
   plots$mh_anime_stat = list()
-  plots$mh_static_stat = list()
+  plots$mh_static_stat = ggplot()
   plots$mh_anime = list()
-  plots$mh_static = list()
+  plots$mh_static = ggplot()
   plots$target = ggplot()
 
   # returns target density
@@ -432,11 +432,11 @@ server = function(input, output) {
         p = p + geom_line(stat = 'density', linetype = 'dashed')
         p_stat = p_stat + geom_line(stat = 'density', linetype = 'dashed')
       }
-      plots$mh_static[[i]] = p
       plots$mh_anime[[i]] = plots$target + geom_line(data = data.frame(output = chain$values[, i]), mapping = aes(x = output), stat = 'density', color = colors_anime[N+1-i])
-      plots$mh_static_stat[[i]] = p_stat
       plots$mh_anime_stat[[i]] = plots$target + geom_line(data = data.frame(output = chain$values_stat[, i]), mapping = aes(x = output), stat = 'density', color = colors_anime[N+1-i])
     }
+    plots$mh_static_stat = p_stat
+    plots$mh_static = p
   }
 
   calculateMeanDistribution = function(dist, parameters){
@@ -593,11 +593,7 @@ server = function(input, output) {
 
   output$time_static_stat = renderPlot({
     if(control$computed){
-      if(time() == 0){
-        plots$target
-      } else {
-        plots$mh_static_stat[[time()]]
-      }
+      plots$mh_static_stat
     }
   })
 
@@ -613,11 +609,7 @@ server = function(input, output) {
 
   output$time_static = renderPlot({
     if(control$computed){
-      if(time() == 0){
-        plots$target
-      } else {
-        plots$mh_static[[time()]]
-      }
+      plots$mh_static
     }
   })
 
