@@ -27,12 +27,12 @@ sidebar = dashboardSidebar(
   tags$style(type='text/css', ".selectize-input { font-size: 16px; line-height: 16px;} .selectize-dropdown { font-size: 15px; line-height: 15px; }"),
   tags$head(
       tags$style(type='text/css',
-                 ".nav-tabs {font-size: 20px} ")
+                 ".nav-tabs {font-size: 22px} ")
   ),
   tags$head(
       tags$style(type='text/css',
                  ".box-header h3.box-title {
-                    font-size: 20px;
+                    font-size: 22px;
                   } ")
   ),
   selectInput(
@@ -113,12 +113,12 @@ body = dashboardBody(
           tags$head(tags$style("#aboutTarget{
                              font-size: 16px;
                             }"
-        )
-      )
+            )
+          )
         ),
         box(
           title = "Slider", width = NULL,
-          sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 20, value = 1, animate = animationOptions(interval = 1500)),
+          sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 19, value = 1, animate = animationOptions(interval = 1500)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
         )
       )
@@ -128,7 +128,12 @@ body = dashboardBody(
         width = 6,
         box(
           title = "ACF Plot", width = NULL,
-          "",
+          textOutput("aboutACF"),
+          tags$head(tags$style("#aboutTarget{
+                             font-size: 16px;
+                            }"
+            )
+          ),
           plotOutput("mh_acf")
         )
       ),
@@ -136,7 +141,12 @@ body = dashboardBody(
         width = 6,
         box(
           title = "Trace Plot", width = NULL,
-          "",
+          textOutput("aboutTrace"),
+          tags$head(tags$style("#aboutTarget{
+                             font-size: 16px;
+                            }"
+            )
+          ),
           plotOutput("mh_trace")
         )
       )
@@ -164,7 +174,12 @@ body = dashboardBody(
         width = 3,
         box(
           title = "About Stationarity", width = NULL,
-          "All about stationarity",
+          textOutput("aboutStationarity"),
+          tags$head(tags$style("#aboutTarget{
+                             font-size: 16px;
+                            }"
+            )
+          )
         ),
         box(
           title = "Slider", width = NULL,
@@ -184,7 +199,12 @@ body = dashboardBody(
         width = 3,
         box(
           title = "About Ergodicity", width = NULL,
-          "All about ergodicity",
+          textOutput("aboutErgodicity"),
+          tags$head(tags$style("#aboutTarget{
+                             font-size: 16px;
+                            }"
+            )
+          )
         ),
         box(
           title = "Slider", width = NULL,
@@ -195,11 +215,15 @@ body = dashboardBody(
     ),
     box(
       title = 'About Strong Law of Large Numbers', width = NULL, status = 'primary',
-      "Strong law of large numbers"
+      textOutput("aboutSLLN"),
+      tags$head(tags$style("#aboutTarget{
+                          font-size: 16px;
+                        }"
+        )
+      )
     ),
     box(
       title = 'Strong Law of Large Numbers', id = 'slln', width = NULL,
-      "How to read slln curves",
       plotOutput("slln")
     )
   )
@@ -597,10 +621,18 @@ server = function(input, output) {
       }
     })
 
+    output$aboutACF = renderText({
+      paste("")
+    })
+
     output$mh_acf = renderPlot({
       if(control$computed){
         acf(density$proposal, main = "ACF Plot")
       }
+    })
+
+    output$aboutTrace = renderText({
+      paste("")
     })
 
     output$mh_trace = renderPlot({
@@ -638,6 +670,13 @@ server = function(input, output) {
     }
   })
 
+  output$aboutStationarity = renderPlot({
+    paste("A Markov chain is said to be stationary if the marginal distribution of X_n doesn't depend on n, i.e. every value of the Markov chain has the same distribution as the target distribution.
+      It is possible if and only if the intial draw is from the target distribution itself. Using the MH-algorithm, it is guarunteed that if the initial distribution is same as the target distribution, the Markov chain will be stationary.
+      All the values of the chain will be identically distributed but won't be independent. There will be some correlation between them depending on the parameters of your aalgorithm.
+      Stationarity can be seen in the plot below, density of the independent Markov chains look similar to the target distribution at every time step. They are overlapping exactly as we have taken only a finite number of chains.")
+  })
+
   output$time_anime = renderPlot({
     if(control$computed){
       if(time_erg() == 0){
@@ -652,6 +691,17 @@ server = function(input, output) {
     if(control$computed){
       plots$mh_static
     }
+  })
+
+  output$aboutErgodicity = renderPlot({
+    paste("A Markov chain is said to be ergodic if the marginal distribution of X_n converges to the target distribution as n goes to infinity.
+      You can observe ergodicity in the plot below, where the density of the independent chains keep getting closer and closer to the target distribution.
+      A stationary Markov chain is always ergodic, as it has already converged to the target, but the reverse is not true. If we start from a different initial distribution (which usually is the case), we can never exactly draw from the target.
+      We can only draw from something very similar to our target, where similarity to the target depends on the algorithm and number of time steps.")
+  })
+
+  output$aboutSLLN = renderPlot({
+    paste("")
   })
 
   output$slln = renderPlot({
