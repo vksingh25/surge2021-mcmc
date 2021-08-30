@@ -24,34 +24,45 @@ library(reshape2)
 sidebar = dashboardSidebar(
   width = 250,
   useShinyjs(),
+  tags$style(type='text/css', ".selectize-input { font-size: 16px; line-height: 16px;} .selectize-dropdown { font-size: 15px; line-height: 15px; }"),
+  tags$head(
+      tags$style(type='text/css',
+                 ".nav-tabs {font-size: 20px} ")
+  ),
+  tags$head(
+      tags$style(type='text/css',
+                 ".box-header h3.box-title {
+                    font-size: 20px;
+                  } ")
+  ),
   selectInput(
-    "dist", "Target Distribution",
+    "dist", tags$h4(tags$b("Target Distribution")),
     c(
       "Chi-squared"="chisq",
       "Normal" = "norm",
       "t-Distribution" = "t.dist"
     )
   ),
-  numericInput("df_chisq", "df", value = 10, min = 1, max = 20, step = 1),
+  numericInput("df_chisq", tags$h4(tags$b("df")), value = 10, min = 1, max = 20, step = 1),
   fluidRow(
     column(6,
-      numericInput("mean_norm", "Mean", value = 0, min = -10, max = 10),
+      numericInput("mean_norm", tags$h4(tags$b("Mean")), value = 0, min = -10, max = 10),
     ),
     column(6,
-      numericInput("sd_norm", "SD", value = 1, min = 0.01, max = 10),
+      numericInput("sd_norm", tags$h4(tags$b("SD")), value = 1, min = 0.01, max = 10),
     )
   ),
-  numericInput("df_t", "df", value = 10, min = 0.01, max = 10),
+  numericInput("df_t", tags$h4(tags$b("df")), value = 10, min = 0.01, max = 10),
   selectInput(
-    "kernel", "Update Mechanism",
+    "kernel", tags$h4(tags$b("Update Mechanism")),
     c(
-      "Gaussian Metropolis Hastings" = "mh_dep",
+      "Gaussian MH" = "mh_dep",
       "Independent MH" = "mh_indep"
     )
   ),
-  numericInput("h", "Step Size", value = 100, min = 0.05, max = 1000),
+  numericInput("h", tags$h4(tags$b("Step Size")), value = 100, min = 0.05, max = 1000),
   selectInput(
-    "starting_dist", "Starting Distribution",
+    "starting_dist", tags$h4(tags$b("Starting Distribution")),
     c(
       "Fixed at 3" = "fixed",
       "Exp(0.05)" = "exp1",
@@ -68,18 +79,28 @@ body = dashboardBody(
     box(
       title = 'About the app', width = NULL, status = 'primary',
       # Everything about the app, how to use it, etc
-      textOutput("about_app")
+      textOutput("about_app"),
+      tags$head(tags$style("#about_app{
+                             font-size: 16px;
+                            }"
+        )
+      )
     ),
     box(
       title = 'About Metropolis Hastings algorithm', width = NULL, status = 'primary',
       # Everything about the app, how to use it, etc
-      textOutput("algo_desc")
+      textOutput("algo_desc"),
+      tags$head(tags$style("#algo_desc{
+                             font-size: 16px;
+                            }"
+        )
+      )
     ),
     fluidRow(
       column(
         width = 9,
         tabBox(
-          title = "MH_plot", id = "tabset_app1", width = NULL,
+          title = "MH Plot", id = "tabset_app1", width = NULL,
           tabPanel(title = "Static", plotOutput("mh_density"), value = 1),
           tabPanel(title = "Animation", plotOutput("mh_density_anime"), value = 2)
         )
@@ -88,7 +109,12 @@ body = dashboardBody(
         width = 3,
         box(
           title = "About Target", width = NULL,
-          textOutput("aboutTarget")
+          textOutput("aboutTarget"),
+          tags$head(tags$style("#aboutTarget{
+                             font-size: 16px;
+                            }"
+        )
+      )
         ),
         box(
           title = "Slider", width = NULL,
@@ -118,7 +144,12 @@ body = dashboardBody(
     box(
       title = 'About Time Evolution', width = NULL, status = 'primary',
       # Everything about selected algorithm
-      textOutput("timeDesc")
+      textOutput("timeDesc"),
+      tags$head(tags$style("#timeDesc{
+                             font-size: 16px;
+                            }"
+        )
+      )
     ),
     fluidRow(
       column(
