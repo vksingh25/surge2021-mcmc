@@ -157,7 +157,7 @@ body = dashboardBody(
         ),
         box(
           title = "Slider", width = NULL,
-          sliderInput(inputId = "time", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 750)),
+          sliderInput(inputId = "time_erg", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 750)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
         )
       )
@@ -215,7 +215,8 @@ server = function(input, output) {
   colors_anime = c(colors_red_anime, colors_blue_anime)
 
   # reactive variables
-  time = reactive({ input$time })
+  time_stat = reactive({ input$time_stat })
+  time_erg = reactive({ input$time_erg })
   targetAnimation = reactive({ input$targetAnimation })
   h = reactive({ input$h })
   dist = reactive({ input$dist })
@@ -348,7 +349,7 @@ server = function(input, output) {
     plots = list()
     plots[[1]] = ggplot(data = data.frame(target = target_curve), mapping = aes(x = target)) +
       geom_line(stat = 'density', lty = 2) +
-      geom_point(data = data.frame(x = prop[1], y = numeric(length = 1)), mapping = aes(x = x, y = y), colour = 'green') +
+      geom_point(data = data.frame(x = prop[1], y = numeric(length = 1)), mapping = aes(x = x, y = y), colour = 'green', size = 3) +
       scale_color_manual(name = "Legend", values = c('blue' = 'blue', 'red' = 'red'), labels = c('red' = 'reject', 'blue' = 'accept')) +
       coord_cartesian(xlim = c(-20, 50), ylim = c(0, 0.2)) +
       theme_classic()
@@ -368,7 +369,7 @@ server = function(input, output) {
           coord_cartesian(xlim = c(-20, 50), ylim = c(0, 0.2)) +
           theme_classic() +
           geom_line(data = data.frame(target = prop_curve), mapping = aes(x = target), stat = 'density', color = 'grey') +
-          geom_point(mapping = aes(x = prop[t], y = 0), colour = 'grey')
+          geom_point(mapping = aes(x = prop[t], y = 0), colour = 'grey', size = 3)
       })
       color_curr = ifelse(acc[i], 'green', 'red')
       plots[[counter + 1]] = local({
@@ -380,7 +381,7 @@ server = function(input, output) {
           coord_cartesian(xlim = c(-20, 50), ylim = c(0, 0.2)) +
           theme_classic() +
           geom_line(data = data.frame(target = prop_curve), mapping = aes(x = target), stat = 'density', color = color_curr) +
-          geom_point(mapping = aes(x = prop[t], y = 0), colour = color_curr)
+          geom_point(mapping = aes(x = prop[t], y = 0), colour = color_curr, size = 3)
       })
       counter = counter + 2
     }
@@ -592,10 +593,10 @@ server = function(input, output) {
 
   output$time_anime_stat = renderPlot({
     if(control$computed){
-      if(time() == 0){
+      if(time_stat() == 0){
         plots$target
       } else {
-        plots$mh_anime_stat[[time()]]
+        plots$mh_anime_stat[[time_stat()]]
       }
     }
   })
@@ -608,10 +609,10 @@ server = function(input, output) {
 
   output$time_anime = renderPlot({
     if(control$computed){
-      if(time() == 0){
+      if(time_erg() == 0){
         plots$target
       } else {
-        plots$mh_anime[[time()]]
+        plots$mh_anime[[time_erg()]]
       }
     }
   })
