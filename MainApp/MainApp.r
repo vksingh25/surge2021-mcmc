@@ -161,6 +161,16 @@ body = dashboardBody(
         )
       )
     ),
+
+    box(
+      title = "About Stationarity", width = NULL, status = 'primary',
+      textOutput("aboutStationarity"),
+      tags$head(tags$style("#aboutStationarity{
+                          font-size: 16px;
+                        }"
+        )
+      )
+    ),
     fluidRow(
       column(
         width = 9,
@@ -173,50 +183,43 @@ body = dashboardBody(
       column(
         width = 3,
         box(
-          title = "About Stationarity", width = NULL,
-          textOutput("aboutStationarity"),
-          tags$head(tags$style("#aboutTarget{
-                             font-size: 16px;
-                            }"
-            )
-          )
-        ),
-        box(
           title = "Slider", width = NULL,
           sliderInput(inputId = "time_stat", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 750)),
-          tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
+          tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }"))
         )
-      ),
+      )
+    ),
+    box(
+      title = "About Ergodicity", width = NULL, status = 'primary',
+      textOutput("aboutErgodicity"),
+      tags$head(tags$style("#aboutErgodicity{
+                          font-size: 16px;
+                        }"
+        )
+      )
+    ),
+    fluidRow(
       column(
         width = 9,
         tabBox(
           title = "Ergodic", id = "tabset_app2.2", width = NULL,
           tabPanel(title = "Animation", plotOutput("time_anime"), value = 1),
           tabPanel(title = "Static", plotOutput("time_static"), value = 2)
-        ),
+        )
       ),
       column(
         width = 3,
         box(
-          title = "About Ergodicity", width = NULL,
-          textOutput("aboutErgodicity"),
-          tags$head(tags$style("#aboutTarget{
-                             font-size: 16px;
-                            }"
-            )
-          )
-        ),
-        box(
           title = "Slider", width = NULL,
           sliderInput(inputId = "time_erg", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 750)),
-          tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
+          tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }"))
         )
       )
     ),
     box(
       title = 'About Strong Law of Large Numbers', width = NULL, status = 'primary',
       textOutput("aboutSLLN"),
-      tags$head(tags$style("#aboutTarget{
+      tags$head(tags$style("#aboutSLLN{
                           font-size: 16px;
                         }"
         )
@@ -225,6 +228,19 @@ body = dashboardBody(
     box(
       title = 'Strong Law of Large Numbers', id = 'slln', width = NULL,
       plotOutput("slln")
+    ),
+    box(
+      title = 'Central Limit Theorem in Markov chains', width = NULL, status = 'primary',
+      textOutput("aboutCLT"),
+      tags$head(tags$style("#aboutCLT{
+                          font-size: 16px;
+                        }"
+        )
+      )
+    ),
+    box(
+      title = 'Central Limit Theorem', id = 'clt', width = NULL,
+      plotOutput('clt')
     )
   )
 )
@@ -259,15 +275,18 @@ server = function(input, output) {
       })
   })
   # variables required throughout the app
-  reps = 1e3
-  N = 1e2
+  reps_chain = 1e3
+  N_chain = 1e2
   N_anime = 20
-  colors_red_static = rainbow(n=N/2, start = 1/25, end = 1/8, alpha=0.2)
-  colors_blue_static = rainbow(n=N/2, start = 1/1.85, end = 1/1.65, alpha = 0.2)
+  colors_red_static = rainbow(n=N_chain/2, start = 1/25, end = 1/8, alpha=0.2)
+  colors_blue_static = rainbow(n=N_chain/2, start = 1/1.85, end = 1/1.65, alpha = 0.2)
   colors_static = c(colors_red_static, colors_blue_static)
-  colors_red_anime = rainbow(n=N/2, start = 1/25, end = 1/8, alpha=1)
-  colors_blue_anime = rainbow(n=N/2, start = 1/1.85, end = 1/1.65, alpha = 1)
+  colors_red_anime = rainbow(n=N_chain/2, start = 1/25, end = 1/8, alpha=1)
+  colors_blue_anime = rainbow(n=N_chain/2, start = 1/1.85, end = 1/1.65, alpha = 1)
   colors_anime = c(colors_red_anime, colors_blue_anime)
+  reps_lln = 50
+  reps_clt = 1000
+  size_lln.clt = 1000
 
   # reactive variables
   time_stat = reactive({ input$time_stat })
@@ -291,7 +310,7 @@ server = function(input, output) {
 
   # variables required for app 1
   density = reactiveValues()
-  density$proposal = numeric(length = N)
+  density$proposal = numeric(length = N_chain)
   density$acc.prob = 1
   density$acc = numeric(length = N_anime)
   density$prop = numeric(length = N_anime)
@@ -300,14 +319,14 @@ server = function(input, output) {
 
   # variables required for app 2
   chain = reactiveValues()
-  chain$values = matrix(0, nrow = reps, ncol = N)
-  chain$values_stat = matrix(0, nrow = reps, ncol = N)
+  chain$values = matrix(0, nrow = reps_chain, ncol = N_chain)
+  chain$values_stat = matrix(0, nrow = reps_chain, ncol = N_chain)
   chain$target = numeric(1e5)
 
-  lln = reactiveValues()
-  lln$values = matrix(0, nrow = 1e3*5, ncol = 10)
-  lln$runningMean = matrix(0, nrow = 1e3*5, ncol = 10)
-  lln$mean = 10
+  lln.clt = reactiveValues()
+  lln.clt$values = matrix(0, nrow = size_lln.clt, ncol = reps_clt)
+  lln.clt$runningMean = matrix(0, nrow = 1e3*5, ncol = reps_lln)
+  lln.clt$mean = 10
 
   # plot variables for app 2
   plots = reactiveValues()
@@ -339,6 +358,7 @@ server = function(input, output) {
   }
 
   # returns proposal values using selected algorithm
+  # TODO: correct the independent MH function
   target_mh = function(N, start = 3, kernel, dist, h, parameters, acc_prob = FALSE){
     if(acc_prob){
       out = numeric(length = N+1)
@@ -376,6 +396,7 @@ server = function(input, output) {
 
   # returns accept reject animation plots
   acceptReject_mh = function(N_anime, start = 3, kernel, dist, h, parameters){
+    print("accept reject mh animation")
     samp = numeric(length = N_anime)
     prop = numeric(length = N_anime)
     acc = numeric(length = N_anime)
@@ -481,10 +502,10 @@ server = function(input, output) {
   }
 
   density.plots = function(N, start, kernel, dist, h, parameters) {
-    for(r in 1:reps){
+    print("time evolution density plots")
+    for(r in 1:reps_chain){
       chain$values[r, ] = target_mh(N = N, start = start, kernel, dist, h, parameters, acc_prob = FALSE)
       chain$values_stat[r, ] = target_mh(N = N, start = random.dist(1, dist, parameters), kernel, dist, h, parameters, acc_prob = FALSE)
-      print(r)
     }
     chain$target = random.dist(1e5, dist, parameters)
     plots$target = targetPlot.dist(chain$target, dist)
@@ -516,6 +537,7 @@ server = function(input, output) {
   }
 
   drawIndependentChains = function(N, reps, start, kernel, dist, h, parameters){
+    print("draw Inpependent chains")
     chains = matrix(0, nrow = N, ncol = reps)
     for(r in 1:reps){
       chains[, r] = target_mh(N, start, kernel, dist, h, parameters, acc_prob = FALSE)
@@ -524,6 +546,7 @@ server = function(input, output) {
   }
 
   calculateRunningMean = function(N, reps, chains){
+    print("running mean calculation")
     running.mean = matrix(0, nrow = N, ncol = reps)
     running.mean[1, ] = chains[1, ]
     for(i in 2:N){
@@ -534,15 +557,17 @@ server = function(input, output) {
 
   simulate = function() {
     if(!control$computed){
+      print("Simulation Started!!")
       samp_size = 1e4
       proposed_and_acc = target_mh(N = 1e4, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters(), acc_prob = TRUE)
       density$proposal = proposed_and_acc[-samp_size+1]
       density$acc.prob = proposed_and_acc[samp_size+1]
-      density.plots(N = N, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
+      density.plots(N = N_chain, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       control$computed = 1
       density$plots = acceptReject_mh(N_anime = 20, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
-      lln$values = drawIndependentChains(N = 1e3*5, reps = 10, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
-      lln$runningMean = calculateRunningMean(N = 1e3*5, reps = 10, chains = lln$values)
+      lln.clt$values = drawIndependentChains(N = size_lln.clt, reps = reps_clt, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
+      lln.clt$runningMean = calculateRunningMean(N = size_lln.clt, reps = reps_lln, chains = lln.clt$values[, 1:reps_lln])
+      print("Simulation Complete!!")
     }
   }
 
@@ -554,14 +579,14 @@ server = function(input, output) {
 
   observeEvent(input$reset, {
     control$computed = 0
-    chain$values = matrix(0, nrow = reps, ncol = N)
-    chain$values_stat = matrix(0, nrow = reps, ncol = N)
-    density$proposal = numeric(length = N)
+    chain$values = matrix(0, nrow = reps_chain, ncol = N_chain)
+    chain$values_stat = matrix(0, nrow = reps_chain, ncol = N_chain)
+    density$proposal = numeric(length = N_chain)
     density$acc.prob = 1
     chain$target = numeric(1e5)
     plots$target = ggplot()
-    lln$values = matrix(0, nrow = 1e3*5, ncol = 10)
-    lln$runningMean = matrix(0, nrow = 1e3*5, ncol = 10)
+    lln.clt$values = matrix(0, nrow = size_lln.clt, ncol = reps_clt)
+    lln.clt$runningMean = matrix(0, nrow = size_lln.clt, ncol = reps_lln)
   })
 
   # output plots of app 1
@@ -599,7 +624,7 @@ server = function(input, output) {
           geom_line(data = data.frame(target = chain$target), mapping = aes(x = target, color = 'black', linetype = 'target'), stat = 'density', lty = 2) +
           scale_color_manual(name = 'Legend', values = c('blue' = 'blue', 'black' = 'black'), labels = c('current', 'target')) +
           scale_linetype_manual(name = 'Legend', values = c('current' = 1, 'target' = 2)) +
-          ylab('Density') + xlab("N = 1e4") +
+          ylab('Density') + xlab(paste("N =", N_chain)) +
           labs(title = 'Density Plot') +
           theme_classic()
       }
@@ -637,10 +662,11 @@ server = function(input, output) {
 
     output$mh_trace = renderPlot({
       if(control$computed){
-        ggplot(data = data.frame(output = density$proposal, time = 1:1e3), mapping = aes(x = time, y = output)) +
+        ggplot(data = data.frame(output = density$proposal, time = 1:reps_chain/2), mapping = aes(x = time, y = output)) +
           geom_line() +
           xlab("Time") + ylab("Proposal") +
-          labs(title = "Trace Plot")
+          labs(title = "Trace Plot") +
+          theme_classic()
       }
   })
 
@@ -670,7 +696,7 @@ server = function(input, output) {
     }
   })
 
-  output$aboutStationarity = renderPlot({
+  output$aboutStationarity = renderText({
     paste("A Markov chain is said to be stationary if the marginal distribution of X_n doesn't depend on n, i.e. every value of the Markov chain has the same distribution as the target distribution.
       It is possible if and only if the intial draw is from the target distribution itself. Using the MH-algorithm, it is guarunteed that if the initial distribution is same as the target distribution, the Markov chain will be stationary.
       All the values of the chain will be identically distributed but won't be independent. There will be some correlation between them depending on the parameters of your aalgorithm.
@@ -693,31 +719,45 @@ server = function(input, output) {
     }
   })
 
-  output$aboutErgodicity = renderPlot({
+  output$aboutErgodicity = renderText({
     paste("A Markov chain is said to be ergodic if the marginal distribution of X_n converges to the target distribution as n goes to infinity.
       You can observe ergodicity in the plot below, where the density of the independent chains keep getting closer and closer to the target distribution.
       A stationary Markov chain is always ergodic, as it has already converged to the target, but the reverse is not true. If we start from a different initial distribution (which usually is the case), we can never exactly draw from the target.
       We can only draw from something very similar to our target, where similarity to the target depends on the algorithm and number of time steps.")
   })
 
-  output$aboutSLLN = renderPlot({
+  output$aboutSLLN = renderText({
     paste("")
   })
 
   output$slln = renderPlot({
     if(control$computed){
-      N = 1e3*5
-      reps = 10
-      df = data.frame(data = lln$runningMean, draws = 1:N)
+      N = size_lln.clt
+      reps = reps_lln
+      df = data.frame(data = lln.clt$runningMean, draws = 1:N)
       for(i in 1:reps){
         colnames(df)[i] = paste("Chain", i)
       }
       df1 = melt(df, id.vars = 'draws', variable.name = 'Chains')
       ggplot(df1, mapping = aes(draws, value)) +
         geom_line(aes(color = Chains)) +
-        geom_line(mapping = aes(y = lln$mean), lty = 2, size = 1) +
+        geom_line(mapping = aes(y = lln.clt$mean), lty = 2, size = 1) +
         theme_classic() +
         theme(legend.position = 'none')
+    }
+  })
+
+  output$clt = renderPlot({
+    if(control$computed){
+      N = size_lln.clt
+      reps = reps_clt
+      means = colMeans(lln.clt$values)
+      cltError = data.frame(mean = sqrt(reps)*(means - lln.clt$mean))
+      ggplot(data = cltError, aes(x = mean)) +
+        geom_histogram(aes(y = ..density..), binwidth = 1.25, alpha = .9, color = "#63BCC9", fill = "#B5EAD7", size = 0.4) +
+        geom_density(alpha = 1, size = 1) +
+        geom_vline(aes(xintercept = 0), lty = 2, size = 1) +
+        theme_classic()
     }
   })
 }
