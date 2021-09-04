@@ -91,6 +91,11 @@ body = dashboardBody(
       )
     ),
     box(
+      width = NULL, status = 'warning',
+      "NOTE: You can switch between the static and animation tabs to see respective demonstrations of the said concepts.
+        The blue triangle is the play button. Click that to play the animations. You can also use the slider to skip or rewind steps if you wish."
+    ),
+    box(
       title = 'About Metropolis Hastings algorithm', width = NULL, status = 'primary',
       # Everything about the app, how to use it, etc
       textOutput("algo_desc"),
@@ -261,7 +266,7 @@ body = dashboardBody(
 )
 
 ui = dashboardPage(
-  dashboardHeader(titleWidth = 250, title = ""),
+  dashboardHeader(titleWidth = 250, title = "Click Start"),
   sidebar,
   body
 )
@@ -709,7 +714,7 @@ server = function(input, output) {
   output$aboutSLLN = renderText({
     paste("The Strong Law of Large Numbers says that the sample mean, i.e., the mean of our Markov chain converges to the actual mean of the distribution (provided it is finite) as the number of samples goes to infinity.
       The plot below demonstrates this. It is plotting the running mean, i.e., the mean till kth time step for every k till 5000, for 50 independent Markov chains,
-      and as you can see, all of these 50 lines converge to the black distribution mean line.")
+      and as you can see, all of these 50 lines converge to the black distribution mean line. For an example where SLLN doesn't hold, set target to t-distribution and df ≤ 1. Here the mean is undefined. Observe the behaviour of the running mean lines!")
   })
 
   output$slln = renderPlot({
