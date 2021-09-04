@@ -639,7 +639,10 @@ server = function(input, output) {
   })
 
   output$aboutACF = renderText({
-    paste("")
+    paste("Auto Correlation Function tells us how correlated draws are as the time gap between them increases.
+      For every natural number k, it plots the correlation between 1st and the kth draw.
+      If the correlation is decreases as k increases, and goes to 0 for say k = 20, then we can say that our algorithm is producing good draws.
+      But, if it is high for large values of k, then the are highly correlated and cannot be used.")
   })
 
   output$mh_acf = renderPlot({
@@ -649,7 +652,10 @@ server = function(input, output) {
   })
 
   output$aboutTrace = renderText({
-    paste("")
+    paste("Trace plot plots the actual draw values on a time scale.
+      This tells us if our draws are actually random or following some pattern.
+      If there is no visible pattern formed, we can be relieved that our draws are actually good.
+      But, if there is some kind of pattern, then we can conclude that our Markov chain is not mixing properly, i.e., it is not covering the whole space, and that the parameters need more fine tuning.")
   })
 
   output$mh_trace = renderPlot({
@@ -712,14 +718,16 @@ server = function(input, output) {
   })
 
   output$aboutErgodicity = renderText({
-    paste("A Markov chain is said to be ergodic if the marginal distribution of X_n converges to the target distribution as n goes to infinity.
+    paste("A Markov chain is said to be ergodic if the marginal distribution of X_n converges to the target distribution in probablity as n goes to infinity.
       You can observe ergodicity in the plot below, where the density of the independent chains keep getting closer and closer to the target distribution.
       A stationary Markov chain is always ergodic, as it has already converged to the target, but the reverse is not true. If we start from a different initial distribution (which usually is the case), we can never exactly draw from the target.
       We can only draw from something very similar to our target, where similarity to the target depends on the algorithm and number of time steps.")
   })
 
   output$aboutSLLN = renderText({
-    paste("")
+    paste("The Strong Law of Large Numbers says that the sample mean, i.e., the mean of our Markov chain converges to the actual mean of the distribution (provided it is finite) as the number of samples goes to infinity.
+      The plot below demonstrates this. It is plotting the running mean, i.e., the mean till kth time step for every k till 5000, for 50 independent Markov chains,
+      and as you can see, all of these 50 lines converge to the black distribution mean line.")
   })
 
   output$slln = renderPlot({
@@ -737,6 +745,13 @@ server = function(input, output) {
         theme_classic() +
         theme(legend.position = 'none')
     }
+  })
+
+  output$aboutCLT = renderText({
+    paste("The Central Limit Thoerem states that square root of sample size times the error in mean, i.e., difference between sample mean and actual mean converges in distribution to the normal distribution centered at 0 with some variance as the sample size goes to infinity.
+      Not that CLT might not hold if this variance is infinite. Also, it is very difficult in practice to calculate the variance for correlated sample.
+      In the plot below, we have simulated 1000 Markov chains for 5000 steps, calculated the error term for these 5000 chains and plotted a histogram of the same.
+      You can see that the histogram looks like a Normal distribution density curve centered at 0 with some variance.")
   })
 
   output$clt = renderPlot({
