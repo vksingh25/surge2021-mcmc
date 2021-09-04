@@ -326,7 +326,6 @@ server = function(input, output) {
   # variables required for app 1
   density = reactiveValues()
   density$proposal = numeric(length = N_chain)
-  density$acc.prob = 1
   density$acc = numeric(length = N_anime)
   density$prop = numeric(length = N_anime)
   density$samp = numeric(length = N_anime)
@@ -370,17 +369,10 @@ server = function(input, output) {
 
   # returns proposal values using selected algorithm
   # TODO: correct the independent MH function
-  target_mh = function(N, start = 3, kernel, dist, h, parameters, acc_prob = FALSE){
-    if(acc_prob){
-      out = numeric(length = N+1)
-    } else {
-      out = numeric(length = N)
-    }
+  target_mh = function(N, start = 3, kernel, dist, h, parameters){
+    out = numeric(length = N)
     U = runif(N-1)
     out[1:N] = mh_loop(N, kernel, dist, parameters, sqrt(h), start, U)
-    if(acc_prob){
-      out[N+1] = 1
-    }
     return (out)
   }
 
@@ -432,7 +424,6 @@ server = function(input, output) {
           geom_line(stat = 'density', lty = 2) +
           geom_point(data = data.frame(x = prop[1:t-1], y = numeric(length = t-1)), mapping = aes(x = x, y = y), colour = colors[1:t-1]) +
           scale_color_manual(name = "Legend", values = c('blue' = 'blue', 'red' = 'red'), labels = c('red' = 'reject', 'blue' = 'accept')) +
-          coord_cartesian(xlim = c(-20, 50), ylim = c(0, 0.2)) +
           theme_classic() +
           geom_line(data = data.frame(target = prop_curve), mapping = aes(x = target), stat = 'density', color = 'grey') +
           geom_point(mapping = aes(x = prop[t], y = 0), colour = 'grey', size = 3)
@@ -444,7 +435,6 @@ server = function(input, output) {
           geom_line(stat = 'density', lty = 2) +
           geom_point(data = data.frame(x = prop[1:t-1], y = numeric(length = i-1)), mapping = aes(x = x, y = y), colour = colors[1:t-1]) +
           scale_color_manual(name = "Legend", values = c('blue' = 'blue', 'red' = 'red'), labels = c('red' = 'reject', 'blue' = 'accept')) +
-          coord_cartesian(xlim = c(-20, 50), ylim = c(0, 0.2)) +
           theme_classic() +
           geom_line(data = data.frame(target = prop_curve), mapping = aes(x = target), stat = 'density', color = color_curr) +
           geom_point(mapping = aes(x = prop[t], y = 0), colour = color_curr, size = 3)
@@ -476,29 +466,21 @@ server = function(input, output) {
     return (rtn)
   }
 
-  targetPlot.dist = function(target, dist){
+  targetPlot.dist = function(target){
     p = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
       geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
-      labs(title = "Density estimates from fixed") +
       theme_classic()
-    if(dist == 'chisq'){
-      p = p + coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2))
-    } else if (dist == 'norm') {
-      p = p + coord_cartesian(xlim = c(-8, 8), ylim = c(0, 0.4))
-    } else if (dist == 't.dist') {
-      p = p + coord_cartesian(xlim = c(-10, 10), ylim = c(0, 0.5))
-    }
     return (p)
   }
 
   density.plots = function(N, start, kernel, dist, h, parameters) {
     print("time evolution density plots")
     for(r in 1:reps_chain){
-      chain$values[r, ] = target_mh(N = N, start = start, kernel, dist, h, parameters, acc_prob = FALSE)
-      chain$values_stat[r, ] = target_mh(N = N, start = random.dist(1, dist, parameters), kernel, dist, h, parameters, acc_prob = FALSE)
+      chain$values[r, ] = target_mh(N = N, start = start, kernel, dist, h, parameters)
+      chain$values_stat[r, ] = target_mh(N = N, start = random.dist(1, dist, parameters), kernel, dist, h, parameters)
     }
     chain$target = random.dist(1e5, dist, parameters)
-    plots$target = targetPlot.dist(chain$target, dist)
+    plots$target = targetPlot.dist(chain$target)
     p = plots$target
     p_stat = plots$target
     for(i in 1:1e2){
@@ -527,10 +509,10 @@ server = function(input, output) {
   }
 
   drawIndependentChains = function(N, reps, start, kernel, dist, h, parameters){
-    print("draw Inpependent chains")
+    print("draw Independent chains")
     chains = matrix(0, nrow = N, ncol = reps)
     for(r in 1:reps){
-      chains[, r] = target_mh(N, start, kernel, dist, h, parameters, acc_prob = FALSE)
+      chains[, r] = target_mh(N, start, kernel, dist, h, parameters)
     }
     return (chains)
   }
@@ -549,10 +531,7 @@ server = function(input, output) {
     if(!control$computed){
       Time = Sys.time()
       print("Simulation Started!!")
-      samp_size = 1e4
-      proposed_and_acc = target_mh(N = 1e4, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters(), acc_prob = TRUE)
-      density$proposal = proposed_and_acc[-samp_size+1]
-      density$acc.prob = proposed_and_acc[samp_size+1]
+      density$proposal = target_mh(N = 1e4, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       density.plots(N = N_chain, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       control$computed = 1
       density$plots = acceptReject_mh(N_anime = 20, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
@@ -630,11 +609,11 @@ server = function(input, output) {
 
   output$aboutTarget = renderText({
     if(dist() == 'chisq') {
-      paste("Chi-squared distribution with ", parameters()$df_chisq, " degrees of freedom")
+      paste("Chi-squared distribution with", parameters()$df_chisq, "degrees of freedom")
     } else if (dist() == 'norm') {
-      paste("Normal distribution with mean ", parameters()$mean_norm, " and standard deviation ", parameters()$sd_norm)
+      paste("Normal distribution with mean", parameters()$mean_norm, "and standard deviation", parameters()$sd_norm)
     } else if (dist() == 't.dist') {
-      paste("t-distribution with ", parameters()$df_chisq, " degrees of freedom")
+      paste("t-distribution with", parameters()$df_chisq, "degrees of freedom")
     }
   })
 
@@ -647,7 +626,7 @@ server = function(input, output) {
 
   output$mh_acf = renderPlot({
     if(control$computed){
-      acf(density$proposal, main = "ACF Plot")
+      acf(density$proposal, main = "")
     }
   })
 
@@ -663,7 +642,6 @@ server = function(input, output) {
       ggplot(data = data.frame(output = density$proposal, time = 1:reps_chain), mapping = aes(x = time, y = output)) +
         geom_line() +
         xlab("Time") + ylab("Proposal") +
-        labs(title = "Trace Plot") +
         theme_classic()
     }
   })
@@ -743,7 +721,8 @@ server = function(input, output) {
         geom_line(aes(color = Chains)) +
         geom_line(mapping = aes(y = lln.clt$mean), lty = 2, size = 1) +
         theme_classic() +
-        theme(legend.position = 'none')
+        theme(legend.position = 'none') +
+        labs(title = "Running mean plot")
     }
   })
 
