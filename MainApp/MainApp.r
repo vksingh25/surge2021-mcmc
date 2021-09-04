@@ -575,14 +575,18 @@ server = function(input, output) {
       paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
           This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.
           In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution.
-          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(x,", h(), "), where x is the current value of the Markov chain), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal."
+          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(x,", h(), "), where x is the current value of the Markov chain), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal.
+          Steps of the algorithm. STEP 1: a value is proposed from the kernel distribution. STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain.
+          STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value."
 
       )
     } else if (kernel() == "mh_indep") {
       paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
           This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.
           In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution.
-          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(2,", h(), ")), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal."
+          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(2,", h(), ")), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal.
+          Steps of the algorithm. STEP 1: a value is proposed from the kernel distribution. STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain.
+          STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value."
 
       )
     }
