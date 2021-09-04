@@ -1,18 +1,12 @@
 # Stuff left to do!
 # "if(FALSE){
 #   0. TODOs
-#     0.7 Change target density plots from random draws to using density function
-#     0.6 write full app description in about section (starting of the app)
-#     0.1 Merge Start and Reset button
-#     0.4 Center play button
-#     0.5 add progress bar when start is clicked
-#     0.2 Return acceptance Probability
+#     0.5 Description of ACF and TS
+#     0.x discription completion
 #     0.n Use C++ for loops
-#   1. Basic MH demo
-#     1.5 Description of ACF and TS
-#   3. Law of Large Numbers
-#   4. CLT
-#   5. Credits and stuff
+#     0.1 Merge Start and Reset button
+#     0.2 Display acc prob
+#     0.5 add progress bar when start is clicked
 # }"
 
 library(shiny)
@@ -21,17 +15,20 @@ library(ggplot2)
 library(shinyjs)
 library(reshape2)
 
+library(Rcpp)
+sourceCpp('MainApp/mh_algorithm.cpp')
+
 sidebar = dashboardSidebar(
   width = 250,
   useShinyjs(),
   tags$style(type='text/css', ".selectize-input { font-size: 16px; line-height: 16px;} .selectize-dropdown { font-size: 15px; line-height: 15px; }"),
   tags$head(
-      tags$style(type='text/css',
-                 ".nav-tabs {font-size: 22px} ")
+    tags$style(type='text/css',
+               ".nav-tabs {font-size: 22px} ")
   ),
   tags$head(
-      tags$style(type='text/css',
-                 ".box-header h3.box-title {
+    tags$style(type='text/css',
+               ".box-header h3.box-title {
                     font-size: 22px;
                   } ")
   ),
@@ -46,10 +43,10 @@ sidebar = dashboardSidebar(
   numericInput("df_chisq", tags$h4(tags$b("df")), value = 10, min = 1, max = 20, step = 1),
   fluidRow(
     column(6,
-      numericInput("mean_norm", tags$h4(tags$b("Mean")), value = 0, min = -10, max = 10),
+           numericInput("mean_norm", tags$h4(tags$b("Mean")), value = 0, min = -10, max = 10),
     ),
     column(6,
-      numericInput("sd_norm", tags$h4(tags$b("SD")), value = 1, min = 0.01, max = 10),
+           numericInput("sd_norm", tags$h4(tags$b("SD")), value = 1, min = 0.01, max = 10),
     )
   ),
   numericInput("df_t", tags$h4(tags$b("df")), value = 10, min = 0.01, max = 10),
@@ -71,9 +68,16 @@ sidebar = dashboardSidebar(
   ),
   # uiOutput("startButton"),
   actionButton(inputId = 'start', label = 'Start', width = 220),
-  actionButton(inputId = 'reset', label = 'Reset', width = 220)
+  actionButton(inputId = 'reset', label = 'Reset', width = 220),
+  sidebarMenu(
+    menuItem("Shiny app developed by:", startExpanded = TRUE,
+      menuSubItem("Vivek Kumar Singh", tabName = "subItem1")
+    ),
+    menuItem("Under the guidance of:", startExpanded = TRUE,
+      menuSubItem(text = paste("Prof. Dootika Vats"), href = "https://dvats.github.io")
+    )
+  )
 )
-
 body = dashboardBody(
   fluidPage(
     box(
@@ -83,7 +87,7 @@ body = dashboardBody(
       tags$head(tags$style("#about_app{
                              font-size: 16px;
                             }"
-        )
+      )
       )
     ),
     box(
@@ -93,7 +97,7 @@ body = dashboardBody(
       tags$head(tags$style("#algo_desc{
                              font-size: 16px;
                             }"
-        )
+      )
       )
     ),
     fluidRow(
@@ -113,13 +117,24 @@ body = dashboardBody(
           tags$head(tags$style("#aboutTarget{
                              font-size: 16px;
                             }"
-            )
+          )
           )
         ),
         box(
           title = "Slider", width = NULL,
           sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 19, value = 1, animate = animationOptions(interval = 1500)),
-          tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }")),
+          tags$head(tags$style(
+            type='text/css',
+            ".slider-animate-button {
+                font-size: 50pt !important;
+              }
+              .slider-animate-container {
+                text-align: center;
+                margin-top: 0px !important;
+                margin-bottom: -10px;
+              } "
+          )
+          ),
         )
       )
     ),
@@ -132,7 +147,7 @@ body = dashboardBody(
           tags$head(tags$style("#aboutTarget{
                              font-size: 16px;
                             }"
-            )
+          )
           ),
           plotOutput("mh_acf")
         )
@@ -145,7 +160,7 @@ body = dashboardBody(
           tags$head(tags$style("#aboutTarget{
                              font-size: 16px;
                             }"
-            )
+          )
           ),
           plotOutput("mh_trace")
         )
@@ -158,7 +173,7 @@ body = dashboardBody(
       tags$head(tags$style("#timeDesc{
                              font-size: 16px;
                             }"
-        )
+      )
       )
     ),
 
@@ -168,7 +183,7 @@ body = dashboardBody(
       tags$head(tags$style("#aboutStationarity{
                           font-size: 16px;
                         }"
-        )
+      )
       )
     ),
     fluidRow(
@@ -195,7 +210,7 @@ body = dashboardBody(
       tags$head(tags$style("#aboutErgodicity{
                           font-size: 16px;
                         }"
-        )
+      )
       )
     ),
     fluidRow(
@@ -222,7 +237,7 @@ body = dashboardBody(
       tags$head(tags$style("#aboutSLLN{
                           font-size: 16px;
                         }"
-        )
+      )
       )
     ),
     box(
@@ -235,7 +250,7 @@ body = dashboardBody(
       tags$head(tags$style("#aboutCLT{
                           font-size: 16px;
                         }"
-        )
+      )
       )
     ),
     box(
@@ -255,24 +270,24 @@ server = function(input, output) {
 
   observeEvent(input$dist, {
     switch(input$dist,
-      'chisq' = {
-          shinyjs::hide("mean_norm")
-          shinyjs::hide("sd_norm")
-          shinyjs::show("df_chisq")
-          shinyjs::hide("df_t")
-      },
-      'norm' = {
-        shinyjs::show("mean_norm")
-        shinyjs::show("sd_norm")
-        shinyjs::hide("df_t")
-        shinyjs::hide("df_chisq")
-      },
-      't.dist' = {
-        shinyjs::hide("mean_norm")
-        shinyjs::hide("sd_norm")
-        shinyjs::hide("df_chisq")
-        shinyjs::show("df_t")
-      })
+           'chisq' = {
+             shinyjs::hide("mean_norm")
+             shinyjs::hide("sd_norm")
+             shinyjs::show("df_chisq")
+             shinyjs::hide("df_t")
+           },
+           'norm' = {
+             shinyjs::show("mean_norm")
+             shinyjs::show("sd_norm")
+             shinyjs::hide("df_t")
+             shinyjs::hide("df_chisq")
+           },
+           't.dist' = {
+             shinyjs::hide("mean_norm")
+             shinyjs::hide("sd_norm")
+             shinyjs::hide("df_chisq")
+             shinyjs::show("df_t")
+           })
   })
   # variables required throughout the app
   reps_chain = 1e3
@@ -286,7 +301,7 @@ server = function(input, output) {
   colors_anime = c(colors_red_anime, colors_blue_anime)
   reps_lln = 50
   reps_clt = 1000
-  size_lln.clt = 1000
+  size_lln.clt = 5000
 
   # reactive variables
   time_stat = reactive({ input$time_stat })
@@ -325,7 +340,7 @@ server = function(input, output) {
 
   lln.clt = reactiveValues()
   lln.clt$values = matrix(0, nrow = size_lln.clt, ncol = reps_clt)
-  lln.clt$runningMean = matrix(0, nrow = 1e3*5, ncol = reps_lln)
+  lln.clt$runningMean = matrix(0, nrow = size_lln.clt, ncol = reps_lln)
   lln.clt$mean = 10
 
   # plot variables for app 2
@@ -341,18 +356,14 @@ server = function(input, output) {
     rtn = 0
     if(dist == 'chisq') {
       k = parameters$df_chisq
-      if(x > 0) {
-        rtn = x^(k/2 - 1) * exp(- x/2)
-      } else {
-        rtn = 0
-      }
+      rtn = dchisq(x, df = k)
     } else if (dist == 'norm') {
       mean = parameters$mean_norm
       sd = parameters$sd_norm
-      rtn = exp(-((x-mean)/sd)^2/2)
+      rtn = dnorm(x, mean = mean, sd = sd)
     } else if (dist == 't.dist') {
       k = parameters$df_t
-      rtn = (1 + x^2/k) ^ (-(k+1)/2)
+      rtn = dt(x, df = k)
     }
     return (rtn)
   }
@@ -365,31 +376,10 @@ server = function(input, output) {
     } else {
       out = numeric(length = N)
     }
-    acc.prob = 1  # acceptance prob
-    out[1] = start
-    mean = 2
-    for(t in 2:N) {
-      if(kernel == 'mh_dep'){
-        mean = out[t-1]
-      }
-      # proposal N(x, h). Use sd = sqrt(variance) in R
-      prop = rnorm(1, mean = mean, sd = sqrt(h))
-
-      # the proposal density gets canceled here
-      alpha = target_den(x = prop, dist, parameters) / target_den(x = out[t-1], dist, parameters)
-
-      U = runif(1)
-      if(U <= alpha)  # to decide whether to accept or reject
-      {
-        out[t] = prop
-        acc.prob = acc.prob + 1
-      } else {
-        out[t] = out[t-1]
-      }
-    }
+    U = runif(N-1)
+    out[1:N] = mh_loop(N, kernel, dist, parameters, sqrt(h), start, U)
     if(acc_prob){
-      out[N+1] = acc.prob / N
-      print(acc.prob/N)
+      out[N+1] = 1
     }
     return (out)
   }
@@ -405,7 +395,7 @@ server = function(input, output) {
     samp[1] = start
     prop[1] = start
     mean = 2
-    for(t in 2:N){
+    for(t in 2:N_anime){
       if(kernel == 'mh_dep'){
         mean = samp[t-1]
       }
@@ -488,9 +478,9 @@ server = function(input, output) {
 
   targetPlot.dist = function(target, dist){
     p = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
-        geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
-        labs(title = "Density estimates from fixed") +
-        theme_classic()
+      geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
+      labs(title = "Density estimates from fixed") +
+      theme_classic()
     if(dist == 'chisq'){
       p = p + coord_cartesian(xlim = c(0, 50), ylim = c(0, 0.2))
     } else if (dist == 'norm') {
@@ -557,6 +547,7 @@ server = function(input, output) {
 
   simulate = function() {
     if(!control$computed){
+      Time = Sys.time()
       print("Simulation Started!!")
       samp_size = 1e4
       proposed_and_acc = target_mh(N = 1e4, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters(), acc_prob = TRUE)
@@ -568,6 +559,7 @@ server = function(input, output) {
       lln.clt$values = drawIndependentChains(N = size_lln.clt, reps = reps_clt, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       lln.clt$runningMean = calculateRunningMean(N = size_lln.clt, reps = reps_lln, chains = lln.clt$values[, 1:reps_lln])
       print("Simulation Complete!!")
+      print(Sys.time()-Time)
     }
   }
 
@@ -590,84 +582,84 @@ server = function(input, output) {
   })
 
   # output plots of app 1
-    output$about_app = renderText({
-      # Learn how to write HTML
-      # Need to learn how to include LaTeX
-      paste("Markov chain Monte Carlo is a technique that is used to draw samples from complicated probability distributions which can be of very high dimensions. Often we only have access to the unnormalised probability density function of our target distribution.
+  output$about_app = renderText({
+    # Learn how to write HTML
+    # Need to learn how to include LaTeX
+    paste("Markov chain Monte Carlo is a technique that is used to draw samples from complicated probability distributions which can be of very high dimensions. Often we only have access to the unnormalised probability density function of our target distribution.
         Our target is to draw samples from these distributions that are close to being independent and identically distributed.
         Our applet tries to motivate the idea behind MCMC by applying algoritms on well known distributions.
         We have a series of plots in this applet starting from demonstrating the convergence of Metropolis-Hastings algorithm and an animation that shows how it actually works. The next two plots, Autocorrelation function and Trace plot, which shows how \"good\" our draws actually are. The next plot aims to introduce the concept of stationarity and ergodicity of Markov chains. After that we have two more plots which demonstrates two very important theorems, the Strong Law of Large Numbers and the Central Limit Theorem.")
-    })
+  })
 
-    output$algo_desc = renderText({
-      if(kernel() == "mh_dep"){
-        paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
+  output$algo_desc = renderText({
+    if(kernel() == "mh_dep"){
+      paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
           This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.
           In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution.
           In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(x,", h(), "), where x is the current value of the Markov chain), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal."
 
-        )
-      } else if (kernel() == "mh_indep") {
-        paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
+      )
+    } else if (kernel() == "mh_indep") {
+      paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
           This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.
           In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution.
           In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(2,", h(), ")), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal."
 
-        )
-      }
-    })
+      )
+    }
+  })
 
-    output$mh_density = renderPlot({
-      if(control$computed){
-        ggplot(data = data.frame(output = density$proposal), mapping = aes(x = output, color = 'blue', linetype = 'current')) +
-          geom_line(stat = 'density') +
-          geom_line(data = data.frame(target = chain$target), mapping = aes(x = target, color = 'black', linetype = 'target'), stat = 'density', lty = 2) +
-          scale_color_manual(name = 'Legend', values = c('blue' = 'blue', 'black' = 'black'), labels = c('current', 'target')) +
-          scale_linetype_manual(name = 'Legend', values = c('current' = 1, 'target' = 2)) +
-          ylab('Density') + xlab(paste("N =", N_chain)) +
-          labs(title = 'Density Plot') +
-          theme_classic()
-      }
-    })
+  output$mh_density = renderPlot({
+    if(control$computed){
+      ggplot(data = data.frame(output = density$proposal), mapping = aes(x = output, color = 'blue', linetype = 'current')) +
+        geom_line(stat = 'density') +
+        geom_line(data = data.frame(target = chain$target), mapping = aes(x = target, color = 'black', linetype = 'target'), stat = 'density', lty = 2) +
+        scale_color_manual(name = 'Legend', values = c('blue' = 'blue', 'black' = 'black'), labels = c('current', 'target')) +
+        scale_linetype_manual(name = 'Legend', values = c('current' = 1, 'target' = 2)) +
+        ylab('Density') + xlab(paste("N =", reps_chain)) +
+        labs(title = 'Density Plot') +
+        theme_classic()
+    }
+  })
 
-    output$mh_density_anime = renderPlot({
-      if(control$computed){
-        density$plots[[targetAnimation()]]
-      }
-    })
+  output$mh_density_anime = renderPlot({
+    if(control$computed){
+      density$plots[[targetAnimation()]]
+    }
+  })
 
-    output$aboutTarget = renderText({
-      if(dist() == 'chisq') {
-        paste("Chi-squared distribution with ", parameters()$df_chisq, " degrees of freedom")
-      } else if (dist() == 'norm') {
-        paste("Normal distribution with mean ", parameters()$mean_norm, " and standard deviation ", parameters()$sd_norm)
-      } else if (dist() == 't.dist') {
-        paste("t-distribution with ", parameters()$df_chisq, " degrees of freedom")
-      }
-    })
+  output$aboutTarget = renderText({
+    if(dist() == 'chisq') {
+      paste("Chi-squared distribution with ", parameters()$df_chisq, " degrees of freedom")
+    } else if (dist() == 'norm') {
+      paste("Normal distribution with mean ", parameters()$mean_norm, " and standard deviation ", parameters()$sd_norm)
+    } else if (dist() == 't.dist') {
+      paste("t-distribution with ", parameters()$df_chisq, " degrees of freedom")
+    }
+  })
 
-    output$aboutACF = renderText({
-      paste("")
-    })
+  output$aboutACF = renderText({
+    paste("")
+  })
 
-    output$mh_acf = renderPlot({
-      if(control$computed){
-        acf(density$proposal, main = "ACF Plot")
-      }
-    })
+  output$mh_acf = renderPlot({
+    if(control$computed){
+      acf(density$proposal, main = "ACF Plot")
+    }
+  })
 
-    output$aboutTrace = renderText({
-      paste("")
-    })
+  output$aboutTrace = renderText({
+    paste("")
+  })
 
-    output$mh_trace = renderPlot({
-      if(control$computed){
-        ggplot(data = data.frame(output = density$proposal, time = 1:reps_chain/2), mapping = aes(x = time, y = output)) +
-          geom_line() +
-          xlab("Time") + ylab("Proposal") +
-          labs(title = "Trace Plot") +
-          theme_classic()
-      }
+  output$mh_trace = renderPlot({
+    if(control$computed){
+      ggplot(data = data.frame(output = density$proposal, time = 1:reps_chain), mapping = aes(x = time, y = output)) +
+        geom_line() +
+        xlab("Time") + ylab("Proposal") +
+        labs(title = "Trace Plot") +
+        theme_classic()
+    }
   })
 
   # output plots for app 2
