@@ -80,10 +80,21 @@ sidebar = dashboardSidebar(
 )
 body = dashboardBody(
   fluidPage(
+    # tags$div(HTML("
+    #             MathJax.Hub.Config({
+    #             tex2jax: {inlineMath: [['$','$'], ['\(','\)']]}
+    #             });
+
+    #             ")),
+    # helpText('An irrational number $\sqrt{2}$
+    #        and a fraction $1-\frac{1}{2}$'),
+    # helpText('and a fact about $\pi$:$\frac2\pi = \frac{\sqrt2}2 \cdot
+    #        \frac{\sqrt{2+\sqrt2}}2 \cdot
+    #        \frac{\sqrt{2+\sqrt{2+\sqrt2}}}2 \cdots$'),
     box(
       title = 'About the app', width = NULL, status = 'primary',
       # Everything about the app, how to use it, etc
-      textOutput("about_app"),
+      uiOutput("about_app"),
       tags$head(tags$style("#about_app{
                              font-size: 16px;
                             }"
@@ -582,13 +593,14 @@ server = function(input, output, server) {
   })
 
   # output plots of app 1
-  output$about_app = renderText({
+  output$about_app = renderUI({
     # Learn how to write HTML
     # Need to learn how to include LaTeX
-    paste("Markov chain Monte Carlo is a technique that is used to draw samples from complicated probability distributions which can be of very high dimensions. Often we only have access to the unnormalised probability density function of our target distribution.
-        Our target is to draw samples from these distributions that are close to being independent and identically distributed.
-        Our applet tries to motivate the idea behind MCMC by applying algoritms on well known distributions.
-        We have a series of plots in this applet starting from demonstrating the convergence of Metropolis-Hastings algorithm and an animation that shows how it actually works. The next two plots, Autocorrelation function and Trace plot, which shows how \"good\" our draws actually are. The next plot aims to introduce the concept of stationarity and ergodicity of Markov chains. After that we have two more plots which demonstrates two very important theorems, the Strong Law of Large Numbers and the Central Limit Theorem.")
+    # paste("Markov chain Monte Carlo is a technique that is used to draw samples from complicated probability distributions which can be of very high dimensions. Often we only have access to the unnormalised probability density function of our target distribution.
+    #     Our target is to draw samples from these distributions that are close to being independent and identically distributed.
+    #     Our applet tries to motivate the idea behind MCMC by applying algoritms on well known distributions.
+    #     We have a series of plots in this applet starting from demonstrating the convergence of Metropolis-Hastings algorithm and an animation that shows how it actually works. The next two plots, Autocorrelation function and Trace plot, which shows how \"good\" our draws actually are. The next plot aims to introduce the concept of stationarity and ergodicity of Markov chains. After that we have two more plots which demonstrates two very important theorems, the Strong Law of Large Numbers and the Central Limit Theorem.")
+    withMathJax(HTML(paste0("Use this formula: $$\\hat{A}_{\\small{\\textrm{M€}}} =", 1,"$$")))
   })
 
   output$algo_desc = renderText({
@@ -764,8 +776,9 @@ server = function(input, output, server) {
       reps = reps_clt
       means = colMeans(lln.clt$values)
       cltError = data.frame(mean = sqrt(reps)*(means - lln.clt$mean))
+      print((sapply(cltError, max)-sapply(cltError, min)))
       ggplot(data = cltError, aes(x = mean)) +
-        geom_histogram(aes(y = ..density..), binwidth = 1.25, alpha = .9, color = "#63BCC9", fill = "#B5EAD7", size = 0.4) +
+        geom_histogram(aes(y = ..density..), binwidth = (sapply(cltError, max)-sapply(cltError, min))/50, alpha = .9, color = "#63BCC9", fill = "#B5EAD7", size = 0.4) +
         geom_density(alpha = 1, size = 1) +
         geom_vline(aes(xintercept = 0), lty = 2, size = 1) +
         theme_classic()
