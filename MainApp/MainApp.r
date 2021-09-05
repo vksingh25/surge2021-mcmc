@@ -373,7 +373,6 @@ server = function(input, output, server) {
   }
 
   # returns proposal values using selected algorithm
-  # TODO: correct the independent MH function
   target_mh = function(N, start = 3, kernel, dist, h, parameters){
     out = numeric(length = N)
     U = runif(N-1)
@@ -540,6 +539,7 @@ server = function(input, output, server) {
       density.plots(N = N_chain, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       control$computed = 1
       density$plots = acceptReject_mh(N_anime = 20, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
+      lln.clt$mean = calculateMeanDistribution(dist(), parameters())
       lln.clt$values = drawIndependentChains(N = size_lln.clt, reps = reps_clt, start = starting.draw(starting_dist()), kernel(), dist(), h(), parameters())
       lln.clt$runningMean = calculateRunningMean(N = size_lln.clt, reps = reps_lln, chains = lln.clt$values[, 1:reps_lln])
       print("Simulation Complete!!")
