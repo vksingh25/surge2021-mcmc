@@ -408,12 +408,20 @@ server = function(input, output, server) {
     }
     colors = ifelse(acc, "blue", "red")
     target_curve = random.dist(1e4, dist, parameters)
+    p_base = ggplot(data = data.frame(target = target_curve), mapping = aes(x = target)) +
+          geom_line(stat = 'density', lty = 2) +
+          geom_point(data = data.frame(x = prop[1:N_anime], y = numeric(length = N_anime)), mapping = aes(x = x, y = y), colour = "white", size = 0.01)
+    xlim = local({
+      ggplot_build(p_base)$layout$panel_scales_x[[1]]$range$range
+    })
+    ylim = local({
+      ggplot_build(p_base)$layout$panel_scales_y[[1]]$range$range
+    })
+    p_base = p_base + coord_cartesian(xlim = xlim, ylim = ylim)
     plots = list()
-    plots[[1]] = ggplot(data = data.frame(target = target_curve), mapping = aes(x = target)) +
-      geom_line(stat = 'density', lty = 2) +
+    plots[[1]] = p_base +
       geom_point(data = data.frame(x = prop[1], y = numeric(length = 1)), mapping = aes(x = x, y = y), colour = 'green', size = 3) +
       scale_color_manual(name = "Legend", values = c('blue' = 'blue', 'red' = 'red'), labels = c('red' = 'reject', 'blue' = 'accept')) +
-      coord_cartesian(xlim = c(-20, 50), ylim = c(0, 0.2)) +
       theme_classic()
     counter = 2
     for(i in 2:N_anime){
@@ -424,8 +432,7 @@ server = function(input, output, server) {
       prop_curve = rnorm(1e5, mean = mean, sd = sqrt(h))
       plots[[counter]] = local({
         t = i
-        p_inter = ggplot(data = data.frame(target = target_curve), mapping = aes(x = target)) +
-          geom_line(stat = 'density', lty = 2) +
+        p_inter = p_base +
           geom_point(data = data.frame(x = prop[1:t-1], y = numeric(length = t-1)), mapping = aes(x = x, y = y), colour = colors[1:t-1]) +
           scale_color_manual(name = "Legend", values = c('blue' = 'blue', 'red' = 'red'), labels = c('red' = 'reject', 'blue' = 'accept')) +
           theme_classic() +
@@ -435,8 +442,7 @@ server = function(input, output, server) {
       color_curr = ifelse(acc[i], 'green', 'red')
       plots[[counter + 1]] = local({
         t = i
-        p_ar = ggplot(data = data.frame(target = target_curve), mapping = aes(x = target)) +
-          geom_line(stat = 'density', lty = 2) +
+        p_ar = p_base +
           geom_point(data = data.frame(x = prop[1:t-1], y = numeric(length = i-1)), mapping = aes(x = x, y = y), colour = colors[1:t-1]) +
           scale_color_manual(name = "Legend", values = c('blue' = 'blue', 'red' = 'red'), labels = c('red' = 'reject', 'blue' = 'accept')) +
           theme_classic() +
