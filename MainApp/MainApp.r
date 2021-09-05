@@ -480,6 +480,13 @@ server = function(input, output, server) {
     p = ggplot(data = data.frame(target = target), mapping = aes(x = target)) +
       geom_line(stat = 'density', linetype = 'dashed', lwd = 0.75) +
       theme_classic()
+    xlim = local({
+      ggplot_build(p)$layout$panel_scales_x[[1]]$range$range
+    })
+    ylim = local({
+      ggplot_build(p)$layout$panel_scales_y[[1]]$range$range
+    })
+    p = p + coord_cartesian(xlim = xlim, ylim = ylim)
     return (p)
   }
 
