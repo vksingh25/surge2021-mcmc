@@ -80,19 +80,8 @@ sidebar = dashboardSidebar(
 )
 body = dashboardBody(
   fluidPage(
-    # tags$div(HTML("
-    #             MathJax.Hub.Config({
-    #             tex2jax: {inlineMath: [['$','$'], ['\(','\)']]}
-    #             });
-
-    #             ")),
-    # helpText('An irrational number $\sqrt{2}$
-    #        and a fraction $1-\frac{1}{2}$'),
-    # helpText('and a fact about $\pi$:$\frac2\pi = \frac{\sqrt2}2 \cdot
-    #        \frac{\sqrt{2+\sqrt2}}2 \cdot
-    #        \frac{\sqrt{2+\sqrt{2+\sqrt2}}}2 \cdots$'),
     box(
-      title = 'About the app', width = NULL, status = 'primary',
+      title = 'About the app', width = NULL, status = 'primary', solidHeader = TRUE,
       # Everything about the app, how to use it, etc
       uiOutput("about_app"),
       tags$head(tags$style("#about_app{
@@ -107,9 +96,9 @@ body = dashboardBody(
         The blue triangle is the play button. Click that to play the animations. You can also use the slider to skip or rewind steps if you wish."
     ),
     box(
-      title = 'About Metropolis Hastings algorithm', width = NULL, status = 'primary',
+      title = 'About Metropolis Hastings algorithm', width = NULL, status = 'primary', solidHeader = TRUE,
       # Everything about the app, how to use it, etc
-      textOutput("algo_desc"),
+      uiOutput("algo_desc"),
       tags$head(tags$style("#algo_desc{
                              font-size: 16px;
                             }"
@@ -121,14 +110,14 @@ body = dashboardBody(
         width = 9,
         tabBox(
           title = "MH Plot", id = "tabset_app1", width = NULL,
-          tabPanel(title = "Static", plotOutput("mh_density"), value = 1),
+          tabPanel(title = "Static", plotOutput("mh_density"), value = 1, solidHeader = TRUE),
           tabPanel(title = "Animation", plotOutput("mh_density_anime"), value = 2)
         )
       ),
       column(
         width = 3,
         box(
-          title = "About Target", width = NULL,
+          title = "About Target", width = NULL, solidHeader = TRUE,
           textOutput("aboutTarget"),
           tags$head(tags$style("#aboutTarget{
                              font-size: 16px;
@@ -137,7 +126,7 @@ body = dashboardBody(
           )
         ),
         box(
-          title = "Slider", width = NULL,
+          title = "Slider", width = NULL, solidHeader = TRUE,
           sliderInput(inputId = "targetAnimation", label = "Animation", min = 1, max = 19, value = 1, animate = animationOptions(interval = 1500)),
           tags$head(tags$style(
             type='text/css',
@@ -158,7 +147,7 @@ body = dashboardBody(
       column(
         width = 6,
         box(
-          title = "ACF Plot", width = NULL,
+          title = "ACF Plot", width = NULL, solidHeader = TRUE,
           textOutput("aboutACF"),
           tags$head(tags$style("#aboutTarget{
                              font-size: 16px;
@@ -171,7 +160,7 @@ body = dashboardBody(
       column(
         width = 6,
         box(
-          title = "Trace Plot", width = NULL,
+          title = "Trace Plot", width = NULL, solidHeader = TRUE,
           textOutput("aboutTrace"),
           tags$head(tags$style("#aboutTarget{
                              font-size: 16px;
@@ -183,9 +172,9 @@ body = dashboardBody(
       )
     ),
     box(
-      title = 'About Time Evolution', width = NULL, status = 'primary',
+      title = 'About Time Evolution', width = NULL, status = 'primary', solidHeader = TRUE,
       # Everything about selected algorithm
-      textOutput("timeDesc"),
+      uiOutput("timeDesc"),
       tags$head(tags$style("#timeDesc{
                              font-size: 16px;
                             }"
@@ -194,8 +183,8 @@ body = dashboardBody(
     ),
 
     box(
-      title = "About Stationarity", width = NULL, status = 'primary',
-      textOutput("aboutStationarity"),
+      title = "About Stationarity", width = NULL, status = 'primary', solidHeader = TRUE,
+      uiOutput("aboutStationarity"),
       tags$head(tags$style("#aboutStationarity{
                           font-size: 16px;
                         }"
@@ -214,15 +203,15 @@ body = dashboardBody(
       column(
         width = 3,
         box(
-          title = "Slider", width = NULL,
+          title = "Slider", width = NULL, solidHeader = TRUE,
           sliderInput(inputId = "time_stat", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 750)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }"))
         )
       )
     ),
     box(
-      title = "About Ergodicity", width = NULL, status = 'primary',
-      textOutput("aboutErgodicity"),
+      title = "About Ergodicity", width = NULL, status = 'primary', solidHeader = TRUE,
+      uiOutput("aboutErgodicity"),
       tags$head(tags$style("#aboutErgodicity{
                           font-size: 16px;
                         }"
@@ -241,15 +230,15 @@ body = dashboardBody(
       column(
         width = 3,
         box(
-          title = "Slider", width = NULL,
+          title = "Slider", width = NULL, solidHeader = TRUE,
           sliderInput(inputId = "time_erg", label = "Number of Draws", min = 0, max = 100, value = 0, animate = animationOptions(interval = 750)),
           tags$head(tags$style(type='text/css', ".slider-animate-button { font-size: 20pt !important; }"))
         )
       )
     ),
     box(
-      title = 'About Strong Law of Large Numbers', width = NULL, status = 'primary',
-      textOutput("aboutSLLN"),
+      title = 'About Strong Law of Large Numbers', width = NULL, status = 'primary', solidHeader = TRUE,
+      uiOutput("aboutSLLN"),
       tags$head(tags$style("#aboutSLLN{
                           font-size: 16px;
                         }"
@@ -261,8 +250,8 @@ body = dashboardBody(
       plotOutput("slln")
     ),
     box(
-      title = 'Central Limit Theorem in Markov chains', width = NULL, status = 'primary',
-      textOutput("aboutCLT"),
+      title = 'Central Limit Theorem in Markov chains', width = NULL, status = 'primary', solidHeader = TRUE,
+      uiOutput("aboutCLT"),
       tags$head(tags$style("#aboutCLT{
                           font-size: 16px;
                         }"
@@ -594,35 +583,24 @@ server = function(input, output, server) {
 
   # output plots of app 1
   output$about_app = renderUI({
-    # Learn how to write HTML
-    # Need to learn how to include LaTeX
-    # paste("Markov chain Monte Carlo is a technique that is used to draw samples from complicated probability distributions which can be of very high dimensions. Often we only have access to the unnormalised probability density function of our target distribution.
-    #     Our target is to draw samples from these distributions that are close to being independent and identically distributed.
-    #     Our applet tries to motivate the idea behind MCMC by applying algoritms on well known distributions.
-    #     We have a series of plots in this applet starting from demonstrating the convergence of Metropolis-Hastings algorithm and an animation that shows how it actually works. The next two plots, Autocorrelation function and Trace plot, which shows how \"good\" our draws actually are. The next plot aims to introduce the concept of stationarity and ergodicity of Markov chains. After that we have two more plots which demonstrates two very important theorems, the Strong Law of Large Numbers and the Central Limit Theorem.")
-    withMathJax(HTML(paste0("Use this formula: $$\\hat{A}_{\\small{\\textrm{M€}}} =", 1,"$$")))
+    withMathJax(HTML(paste0("Markov chain Monte Carlo is a technique that is used to draw samples from complicated probability distributions which can be of very high dimensions.", br(), "
+      Our target is to draw samples from these distributions that are close to being independent and identically distributed. ", br(), "
+      Our applet tries to motivate the idea behind MCMC by applying algoritms on well known distributions. ", br(), "
+      We have a series of plots in this applet starting from demonstrating the convergence of Metropolis-Hastings algorithm and an animation that shows how it actually works.
+      The next two plots, Autocorrelation function and Trace plot, which shows how good our draws actually are. The next plot aims to introduce the concept of stationarity and ergodicity of Markov chains. After that we have two more plots which demonstrates two very important theorems, the Strong Law of Large Numbers and the Central Limit Theorem.")))
+    # withMathJax(HTML(paste0("Use this formula: $$\\hat{A}_{\\small{\\textrm{M€}}} =", 1,"$$ abcdefg")))
   })
 
-  output$algo_desc = renderText({
-    if(kernel() == "mh_dep"){
-      paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
-          This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.
-          In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution.
-          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(x,", h(), "), where x is the current value of the Markov chain), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal.
-          Steps of the algorithm. STEP 1: a value is proposed from the kernel distribution. STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain.
+  output$algo_desc = renderUI({
+      withMathJax(HTML(paste0("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task. ", br(), "
+          This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.", br(), "
+          In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution. ", br(),"
+          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a three step process. ", br(), "
+          STEP 1: a value is proposed from the kernel distribution. ", br(),"
+          STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain.
+          $$\\alpha = \\text{min}(1, \\frac{\\pi(y)Q(x_t|y)}{\\pi(x_t)Q(y|x_t)});$$$$ \\pi \\text{ is the target distribution, } Q \\text{ is the proposal distribution } y \\text{ is the proposed value and } x_t \\text{ is the current value of the chain.}$$
           STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value."
-
-      )
-    } else if (kernel() == "mh_indep") {
-      paste("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task.
-          This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.
-          In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution.
-          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a two step process. First we propose a value from a transition kernel (in this case, N(2,", h(), ")), which is shown in grey color. Then our algorithm either accepts that value, coloring that point green, or it rejects that value, coloring it red. The accept-reject step is based on the MH-ratio of the proposal.
-          Steps of the algorithm. STEP 1: a value is proposed from the kernel distribution. STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain.
-          STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value."
-
-      )
-    }
+      )))
   })
 
   output$mh_density = renderPlot({
@@ -684,13 +662,13 @@ server = function(input, output, server) {
   })
 
   # output plots for app 2
-  output$timeDesc = renderText({
-    paste("This plot aims to demonstrate the convergence of proposal distribution to target distribution with time.
+  output$timeDesc = renderUI({
+    HTML(paste0("This plot aims to demonstrate the convergence of proposal distribution to target distribution with time.", br(),"
       We sample 1000 different and independent Markov chains from the selected starting distribution and run each of them for 100 iterations.
-      Then we plot the marginal density plot of t-th point of the chain using the 1000 different replications.
-      The first tab shows the animation of how the marginal density evolves with time.
-      The second tab shows all the densities from the start till time t for better visualization of the convergence."
-    )
+      Then we plot the marginal density plot of kth time step of the chain using the 1000 different replications. ", br(), "
+      The first tab shows the animation of how the marginal density evolves with time. ", br(), "
+      The second tab shows all the densities from the start till time k for better visualization of the convergence."
+    ))
   })
 
   output$time_anime_stat = renderPlot({
@@ -709,11 +687,11 @@ server = function(input, output, server) {
     }
   })
 
-  output$aboutStationarity = renderText({
-    paste("A Markov chain is said to be stationary if the marginal distribution of X_n doesn't depend on n, i.e. every value of the Markov chain has the same distribution as the target distribution.
-      It is possible if and only if the intial draw is from the target distribution itself. Using the MH-algorithm, it is guarunteed that if the initial distribution is same as the target distribution, the Markov chain will be stationary.
-      All the values of the chain will be identically distributed but won't be independent. There will be some correlation between them depending on the parameters of your aalgorithm.
-      Stationarity can be seen in the plot below, density of the independent Markov chains look similar to the target distribution at every time step. They are overlapping exactly as we have taken only a finite number of chains.")
+  output$aboutStationarity = renderUI({
+    HTML(paste("A Markov chain is said to be stationary if the marginal distribution of X_n doesn't depend on n, i.e. every value of the Markov chain has the same distribution as the target distribution.
+      It is possible if and only if the intial draw is from the target distribution itself.", br()," Using the MH-algorithm, it is guarunteed that if the initial distribution is same as the target distribution, the Markov chain will be stationary.
+      All the values of the chain will be identically distributed but won't be independent. There will be some correlation between them depending on the parameters of your aalgorithm.", br(), "
+      Stationarity can be seen in the plot below, density of the independent Markov chains look similar to the target distribution at every time step. They are overlapping exactly as we have taken only a finite number of chains."))
   })
 
   output$time_anime = renderPlot({
@@ -732,17 +710,17 @@ server = function(input, output, server) {
     }
   })
 
-  output$aboutErgodicity = renderText({
-    paste("A Markov chain is said to be ergodic if the marginal distribution of X_n converges to the target distribution in probablity as n goes to infinity.
-      You can observe ergodicity in the plot below, where the density of the independent chains keep getting closer and closer to the target distribution.
-      A stationary Markov chain is always ergodic, as it has already converged to the target, but the reverse is not true. If we start from a different initial distribution (which usually is the case), we can never exactly draw from the target.
-      We can only draw from something very similar to our target, where similarity to the target depends on the algorithm and number of time steps.")
+  output$aboutErgodicity = renderUI({
+    HTML(paste("A Markov chain is said to be ergodic if the marginal distribution of X_n converges to the target distribution in probablity as n goes to infinity.", br(), "
+      You can observe ergodicity in the plot below, where the density of the independent chains keep getting closer and closer to the target distribution.", br(), "
+      A stationary Markov chain is always ergodic, as it has already converged to the target, but the reverse is not true. If we start from a different initial distribution (which usually is the case), we can never exactly draw from the target.", br(),"
+      We can only draw from something very similar to our target, where similarity to the target depends on the algorithm and number of time steps."))
   })
 
-  output$aboutSLLN = renderText({
-    paste("The Strong Law of Large Numbers says that the sample mean, i.e., the mean of our Markov chain converges to the actual mean of the distribution (provided it is finite) as the number of samples goes to infinity.
+  output$aboutSLLN = renderUI({
+    HTML(paste("The Strong Law of Large Numbers says that the sample mean, i.e., the mean of our Markov chain converges to the actual mean of the distribution (provided it is finite) as the number of samples goes to infinity.", br(), "
       The plot below demonstrates this. It is plotting the running mean, i.e., the mean till kth time step for every k till 5000, for 50 independent Markov chains,
-      and as you can see, all of these 50 lines converge to the black distribution mean line. For an example where SLLN doesn't hold, set target to t-distribution and df ≤ 1. Here the mean is undefined. Observe the behaviour of the running mean lines!")
+      and as you can see, all of these 50 lines converge to the black distribution mean line.", br()," For an example where SLLN doesn't hold, set target to t-distribution and df ≤ 1. Here the mean is undefined. Observe the behaviour of the running mean lines!"))
   })
 
   output$slln = renderPlot({
@@ -763,11 +741,11 @@ server = function(input, output, server) {
     }
   })
 
-  output$aboutCLT = renderText({
-    paste("The Central Limit Thoerem states that square root of sample size times the error in mean, i.e., difference between sample mean and actual mean converges in distribution to the normal distribution centered at 0 with some variance as the sample size goes to infinity.
-      Not that CLT might not hold if this variance is infinite. Also, it is very difficult in practice to calculate the variance for correlated sample.
-      In the plot below, we have simulated 1000 Markov chains for 5000 steps, calculated the error term for these 5000 chains and plotted a histogram of the same.
-      You can see that the histogram looks like a Normal distribution density curve centered at 0 with some variance.")
+  output$aboutCLT = renderUI({
+    HTML(paste("The Central Limit Thoerem states that square root of sample size times the error in mean, i.e., difference between sample mean and actual mean converges in distribution to the normal distribution centered at 0 with some variance as the sample size goes to infinity.", br(),"
+      Not that CLT might not hold if this variance is infinite. Also, it is very difficult in practice to calculate the variance for correlated sample.", br(), "
+      In the plot below, we have simulated 1000 Markov chains for 5000 steps, calculated the error term for these 5000 chains and plotted a histogram of the same. ", br(),"
+      You can see that the histogram looks like a Normal distribution density curve centered at 0 with some variance."))
   })
 
   output$clt = renderPlot({
