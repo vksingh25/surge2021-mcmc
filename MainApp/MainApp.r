@@ -271,7 +271,7 @@ ui = dashboardPage(
   body
 )
 
-server = function(input, output) {
+server = function(input, output, server) {
 
   observeEvent(input$dist, {
     switch(input$dist,
@@ -563,6 +563,9 @@ server = function(input, output) {
     plots$target = ggplot()
     lln.clt$values = matrix(0, nrow = size_lln.clt, ncol = reps_clt)
     lln.clt$runningMean = matrix(0, nrow = size_lln.clt, ncol = reps_lln)
+    updateSliderInput(inputId = "targetAnimation", value = 1)
+    updateSliderInput(inputId = "time_stat", value = 0)
+    updateSliderInput(inputId = "time_erg", value = 0)
   })
 
   # output plots of app 1
