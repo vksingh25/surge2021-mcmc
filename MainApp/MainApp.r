@@ -1,14 +1,3 @@
-# Stuff left to do!
-# "if(FALSE){
-#   0. TODOs
-#     0.5 Description of ACF and TS
-#     0.x discription completion
-#     0.n Use C++ for loops
-#     0.1 Merge Start and Reset button
-#     0.2 Display acc prob
-#     0.5 add progress bar when start is clicked
-# }"
-
 library(shiny)
 library(shinydashboard)
 library(ggplot2)
@@ -598,7 +587,7 @@ server = function(input, output, server) {
           In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a three step process. ", br(), "
           STEP 1: a value is proposed from the kernel distribution. ", br(),"
           STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain.
-          $$\\alpha = \\text{min}(1, \\frac{\\pi(y)Q(x_t|y)}{\\pi(x_t)Q(y|x_t)});$$$$ \\pi \\text{ is the target distribution, } Q \\text{ is the proposal distribution } y \\text{ is the proposed value and } x_t \\text{ is the current value of the chain.}$$
+          $$\\alpha = \\text{min}(1, \\frac{\\pi(y)Q(x_t|y)}{\\pi(x_t)Q(y|x_t)});$$$$ \\pi \\text{ is the target distribution, } Q \\text{ is the kernel distribution, } y \\text{ is the proposed value and } x_t \\text{ is the current value of the chain.}$$
           STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value."
       )))
   })

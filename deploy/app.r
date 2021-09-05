@@ -1,14 +1,3 @@
-# Stuff left to do!
-# "if(FALSE){
-#   0. TODOs
-#     0.5 Description of ACF and TS
-#     0.x discription completion
-#     0.n Use C++ for loops
-#     0.1 Merge Start and Reset button
-#     0.2 Display acc prob
-#     0.5 add progress bar when start is clicked
-# }"
-
 library(shiny)
 library(shinydashboard)
 library(ggplot2)
@@ -71,10 +60,10 @@ sidebar = dashboardSidebar(
   actionButton(inputId = 'reset', label = 'Reset', width = 220),
   sidebarMenu(
     menuItem("Shiny app developed by:", startExpanded = TRUE,
-             menuSubItem("Vivek Kumar Singh", tabName = "subItem1")
+      menuSubItem("Vivek Kumar Singh", tabName = "subItem1")
     ),
     menuItem("Under the guidance of:", startExpanded = TRUE,
-             menuSubItem(text = paste("Prof. Dootika Vats"), href = "https://dvats.github.io")
+      menuSubItem(text = paste("Prof. Dootika Vats"), href = "https://dvats.github.io")
     )
   )
 )
@@ -409,8 +398,8 @@ server = function(input, output, server) {
     colors = ifelse(acc, "blue", "red")
     target_curve = random.dist(1e4, dist, parameters)
     p_base = ggplot(data = data.frame(target = target_curve), mapping = aes(x = target)) +
-      geom_line(stat = 'density', lty = 2) +
-      geom_point(data = data.frame(x = prop[1:N_anime], y = numeric(length = N_anime)), mapping = aes(x = x, y = y), colour = "white", size = 0.01)
+          geom_line(stat = 'density', lty = 2) +
+          geom_point(data = data.frame(x = prop[1:N_anime], y = numeric(length = N_anime)), mapping = aes(x = x, y = y), colour = "white", size = 0.01)
     xlim = local({
       ggplot_build(p_base)$layout$panel_scales_x[[1]]$range$range
     })
@@ -592,15 +581,15 @@ server = function(input, output, server) {
   })
 
   output$algo_desc = renderUI({
-    withMathJax(HTML(paste0("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task. ", br(), "
+      withMathJax(HTML(paste0("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task. ", br(), "
           This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.", br(), "
           In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution. ", br(),"
           In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a three step process. ", br(), "
           STEP 1: a value is proposed from the kernel distribution. ", br(),"
           STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain.
-          $$\\alpha = \\text{min}(1, \\frac{\\pi(y)Q(x_t|y)}{\\pi(x_t)Q(y|x_t)});$$$$ \\pi \\text{ is the target distribution, } Q \\text{ is the proposal distribution } y \\text{ is the proposed value and } x_t \\text{ is the current value of the chain.}$$
+          $$\\alpha = \\text{min}(1, \\frac{\\pi(y)Q(x_t|y)}{\\pi(x_t)Q(y|x_t)});$$$$ \\pi \\text{ is the target distribution, } Q \\text{ is the kernel distribution, } y \\text{ is the proposed value and } x_t \\text{ is the current value of the chain.}$$
           STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value."
-    )))
+      )))
   })
 
   output$mh_density = renderPlot({
