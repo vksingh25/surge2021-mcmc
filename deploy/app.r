@@ -572,16 +572,13 @@ server = function(input, output, server) {
 
   # output plots of app 1
   output$about_app = renderUI({
-    withMathJax(HTML(paste0("Markov chain Monte Carlo is a technique that is used to draw samples from complicated probability distributions which can be of very high dimensions.", br(), "
-      Our target is to draw samples from these distributions that are close to being independent and identically distributed. ", br(), "
-      Our applet tries to motivate the idea behind MCMC by applying algoritms on well known distributions. ", br(), "
-      We have a series of plots in this applet starting from demonstrating the convergence of Metropolis-Hastings algorithm and an animation that shows how it actually works.
-      The next two plots, Autocorrelation function and Trace plot, which shows how good our draws actually are. The next plot aims to introduce the concept of stationarity and ergodicity of Markov chains. After that we have two more plots which demonstrates two very important theorems, the Strong Law of Large Numbers and the Central Limit Theorem.")))
+    withMathJax(HTML(paste0("Markov chain Monte Carlo (MCMC) is a technique that is used to draw samples from complicated probability distributions using a Markov chain.", br()," ",br(), "
+      Our applet tries to visually depict the following important theoretical characteristics of an MCMC problem ", br(), "* Intuition behind the Metropolis-Hastings Algorithm", br(), "* Stationarity", br(), "* Ergodicity", br(), "* Law of large numbers", br(), "* Central limit theorem")))
     # withMathJax(HTML(paste0("Use this formula: $$\\hat{A}_{\\small{\\textrm{M€}}} =", 1,"$$ abcdefg")))
   })
 
   output$algo_desc = renderUI({
-      withMathJax(HTML(paste0("Our aim is to produce samples from our selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task. ", br(), "
+      withMathJax(HTML(paste0("Our aim is to produce samples from the selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task. ", br(), " ", br(),"
           This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.", br(), "
           In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution. ", br(),"
           In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a three step process. ", br(), "
