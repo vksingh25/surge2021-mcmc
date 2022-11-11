@@ -40,13 +40,13 @@ sidebar = dashboardSidebar(
   ),
   numericInput("df_t", tags$h4(tags$b("df")), value = 10, min = 0.01, max = 10),
   selectInput(
-    "kernel", tags$h4(tags$b("Update Mechanism")),
+    "kernel", tags$h4(tags$b("Proposal Distribution")),
     c(
-      "Gaussian MH" = "mh_dep",
-      "Independent MH" = "mh_indep"
+      "Random Walk - N(x_t, h)" = "mh_dep",
+      "Inde MH - N(0, h)" = "mh_indep"
     )
   ),
-  numericInput("h", tags$h4(tags$b("Step Size")), value = 100, min = 0.05, max = 1000),
+  numericInput("h", tags$h4(tags$b("Step Size (h)")), value = 10, min = 0.05, max = 100),
   selectInput(
     "starting_dist", tags$h4(tags$b("Starting Distribution")),
     c(
@@ -55,9 +55,11 @@ sidebar = dashboardSidebar(
       "Exp(0.01)" = "exp2"
     )
   ),
+  p("Please wait ~10 secs after pressing Start for the animations to be ready."),
   # uiOutput("startButton"),
   actionButton(inputId = 'start', label = 'Start', width = 220),
   actionButton(inputId = 'reset', label = 'Reset', width = 220),
+  p("For a new simulation, you must click Reset before click Start again."),
   sidebarMenu(
     menuItem("Shiny app developed by:", startExpanded = TRUE,
       menuSubItem("Vivek Kumar Singh", tabName = "subItem1")
@@ -573,19 +575,17 @@ server = function(input, output, server) {
   # output plots of app 1
   output$about_app = renderUI({
     withMathJax(HTML(paste0("Markov chain Monte Carlo (MCMC) is a technique that is used to draw samples from complicated probability distributions using a Markov chain.", br()," ",br(), "
-      Our applet tries to visually depict the following important theoretical characteristics of an MCMC problem ", br(), "* Intuition behind the Metropolis-Hastings Algorithm", br(), "* Stationarity", br(), "* Ergodicity", br(), "* Law of large numbers", br(), "* Central limit theorem")))
+      Our applet tries to visually depict the following important theoretical characteristics of an MCMC problem.", br(),br(), "* The Metropolis-Hastings Algorithm", br(), "* Stationarity", br(), "* Ergodicity", br(), "* Law of large numbers", br(), "* Central limit theorem")))
     # withMathJax(HTML(paste0("Use this formula: $$\\hat{A}_{\\small{\\textrm{M€}}} =", 1,"$$ abcdefg")))
   })
 
   output$algo_desc = renderUI({
       withMathJax(HTML(paste0("Our aim is to produce samples from the selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task. ", br(), " ", br(),"
-          This algorithm simulates an ergodic Markov chain, i.e., the steady state of the Markov chain doesn't depend on the initial state. This simulated chain eventually gives samples similar to draws from our target distribution.", br(), "
-          In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution. ", br(),"
-          In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a three step process. ", br(), "
-          STEP 1: a value is proposed from the kernel distribution. ", br(),"
+          This algorithm proposes a value from the chosen proposal distribution and accepts of rejects it with a certain probability. Below are the 3 steps of the MH algorithm.", br(), " ", br(), "STEP 1: a value is proposed from the kernel distribution Q ", br(),"
           STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain.
-          $$\\alpha = \\text{min}(1, \\frac{\\pi(y)Q(x_t|y)}{\\pi(x_t)Q(y|x_t)});$$$$ \\pi \\text{ is the target distribution, } Q \\text{ is the kernel distribution, } y \\text{ is the proposed value and } x_t \\text{ is the current value of the chain.}$$
-          STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value."
+          $$\\alpha = \\text{min}\\left(1, \\frac{\\pi(y)Q(x_t|y)}{\\pi(x_t)Q(y|x_t)} \\right);$$$$ \\pi \\text{ is the target distribution, } Q \\text{ is the kernel distribution, } y \\text{ is the proposed value and } x_t \\text{ is the current value of the chain.}$$
+          STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value.", br(),  "In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution. ", br(),"
+ In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a three step process. "
       )))
   })
 
