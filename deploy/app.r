@@ -96,6 +96,12 @@ body = dashboardBody(
       )
       )
     ),
+    box(
+      width = NULL, status = 'warning',
+      "Using the chosen settings, 1000 independent chains are run, each of length 5000. The multiple chains is only for demonstrating the distributional behavior of the Markov chains.", br(), "", br(),
+      "Static tab: estimated density from the samples compared with the chosen target.", br(),
+      "Animation tab: The accept-reject procedure for 20 draws."
+    ),
     fluidRow(
       column(
         width = 9,
@@ -580,13 +586,13 @@ server = function(input, output, server) {
   })
 
   output$algo_desc = renderUI({
-      withMathJax(HTML(paste0("Our aim is to produce samples from the selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task. ", br(), " ", br(),"
-          This algorithm proposes a value from the chosen proposal distribution and accepts of rejects it with a certain probability. Below are the 3 steps of the MH algorithm.", br(), " ", br(), "STEP 1: a value is proposed from the kernel distribution Q ", br(),"
-          STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain.
-          $$\\alpha = \\text{min}\\left(1, \\frac{\\pi(y)Q(x_t|y)}{\\pi(x_t)Q(y|x_t)} \\right);$$$$ \\pi \\text{ is the target distribution, } Q \\text{ is the kernel distribution, } y \\text{ is the proposed value and } x_t \\text{ is the current value of the chain.}$$
-          STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value.", br(),  "In the Static tab, you can see how the density of our Markov chain looks similar to the target distribution. ", br(),"
- In the Animation tab, we have tried to demontrate the working of the MH-algorithm. Every draw is a three step process. "
-      )))
+      withMathJax(HTML(paste0("$$ \\pi \\text{ is the target distribution, }$$ $$ Q \\text{ is the proposal distribution} $$ $$x_t \\text{ is the current value of the chain.}$$ Our aim is to produce samples from the selected target distribution. We use the Metropolis-Hastings algorithm to accomplish this task. ", br(), " ", br(),"
+          This algorithm proposes a value from the chosen proposal distribution and accepts or rejects it with a certain probability.  Below are the 3 steps of the MH algorithm.", br(), " ", br(), 
+          
+          "STEP 1: a value y is proposed from the proposal distribution Q ", br(),"
+          STEP 2: MH ratio alpha is calculated using the proposal and the current value of the Markov chain:
+          $$\\alpha = \\text{min}\\left(1, \\frac{\\pi(y)Q(x_t|y)}{\\pi(x_t)Q(y|x_t)} \\right).$$
+          STEP 3: the proposal is selected with probability alpha. If rejected, then the new value of the chain is same as the current value.")))
   })
 
   output$mh_density = renderPlot({
@@ -619,10 +625,7 @@ server = function(input, output, server) {
   })
 
   output$aboutACF = renderText({
-    paste("Auto Correlation Function tells us how correlated draws are as the time gap between them increases.
-      For every natural number k, it plots the correlation between 1st and the kth draw.
-      If the correlation is decreases as k increases, and goes to 0 for say k = 20, then we can say that our algorithm is producing good draws.
-      But, if it is high for large values of k, then the are highly correlated and cannot be used.")
+    paste("Autocorrelation function tells us how correlated the draws are as the time gap (lag) between them increases.  The larger the value of lag, for which the vertical lines are significantly different from 0, the more correlated the process is.")
   })
 
   output$mh_acf = renderPlot({
