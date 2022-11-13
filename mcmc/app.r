@@ -59,7 +59,7 @@ sidebar = dashboardSidebar(
   # uiOutput("startButton"),
   actionButton(inputId = 'start', label = 'Start', width = 220),
   actionButton(inputId = 'reset', label = 'Reset', width = 220),
-  p("For a new simulation, you must click Reset before click Start again."),
+  p("For a new simulation, click Reset."),
   sidebarMenu(
     menuItem("Shiny app developed by:", startExpanded = TRUE,
       menuSubItem("Vivek Kumar Singh", tabName = "subItem1")
@@ -72,7 +72,7 @@ sidebar = dashboardSidebar(
 body = dashboardBody(
   fluidPage(
     box(
-      title = 'About the app', width = NULL, status = 'primary', solidHeader = TRUE,
+      title = 'Convergences in Markov chain Monte Carlo', width = NULL, status = 'primary', solidHeader = TRUE,
       # Everything about the app, how to use it, etc
       uiOutput("about_app"),
       tags$head(tags$style("#about_app{
@@ -96,12 +96,12 @@ body = dashboardBody(
       )
       )
     ),
-    box(
-      width = NULL, status = 'warning',
-      "Using the chosen settings, 1000 independent chains are run, each of length 5000. The multiple chains is only for demonstrating the distributional behavior of the Markov chains.", br(), "", br(),
-      "Static tab: estimated density from the samples compared with the chosen target.", br(),
-      "Animation tab: The accept-reject procedure for 20 draws."
-    ),
+    # box(
+    #   width = NULL, status = 'warning',
+    #   "Using the chosen settings, 1000 independent chains are run, each of length 5000. The multiple chains is only for demonstrating the distributional behavior of the Markov chains.", br(), "", br(),
+    #   "Static tab: estimated density from the samples compared with the chosen target.", br(),
+    #   "Animation tab: The accept-reject procedure for 20 draws."
+    # ),
     fluidRow(
       column(
         width = 9,
@@ -192,7 +192,7 @@ body = dashboardBody(
       column(
         width = 9,
         tabBox(
-          title = "Stationary", id = "tabset_app2.1", width = NULL,
+          title = "Stationarity", id = "tabset_app2.1", width = NULL,
           tabPanel(title = "Animation", plotOutput("time_anime_stat"), value = 1),
           tabPanel(title = "Static", plotOutput("time_static_stat"), value = 2)
         )
@@ -263,7 +263,7 @@ body = dashboardBody(
 )
 
 ui = dashboardPage(
-  dashboardHeader(titleWidth = 250, title = "Click Start"),
+  dashboardHeader(titleWidth = 250, title = "Markov chain Monte Carlo"),
   sidebar,
   body
 )
@@ -635,10 +635,8 @@ server = function(input, output, server) {
   })
 
   output$aboutTrace = renderText({
-    paste("Trace plot plots the actual draw values on a time scale.
-      This tells us if our draws are actually random or following some pattern.
-      If there is no visible pattern formed, we can be relieved that our draws are actually good.
-      But, if there is some kind of pattern, then we can conclude that our Markov chain is not mixing properly, i.e., it is not covering the whole space, and that the parameters need more fine tuning.")
+    paste("Trace plot plots the actual draw values versus time index.
+      This tells us how well the process is moving in the space.")
   })
 
   output$mh_trace = renderPlot({
@@ -652,10 +650,13 @@ server = function(input, output, server) {
 
   # output plots for app 2
   output$timeDesc = renderUI({
-    HTML(paste0("This plot aims to demonstrate the convergence of proposal distribution to target distribution with time.", br(),"
-      We sample 1000 different and independent Markov chains from the selected starting distribution and run each of them for 100 iterations.
-      Then we plot the marginal density plot of kth time step of the chain using the 1000 different replications. ", br(), "
-      The first tab shows the animation of how the marginal density evolves with time. ", br(), "
+    HTML(paste0("Every iterate of the Markov chain has a marginal distribution. The density plots aim to compare the marginal distribution at increasing times versus the target distribution.", br(), " ", br(), "
+      We do two different kinds of runs:", br(), " ", br(),
+      "(i) we start the Markov chain from the target distribution (this is usually not possible to do, and we do it for demonstration of an ideal situation)", br(), 
+      "(ii) we start the Markov chain from the chosen starting distribution", br(), " ", br(), 
+      "In both cases, we sample 1000 independent Markov chains from the selected starting distribution and run each of them for 100 iterations.
+      Then we plot the marginal density plot of tth time step of the chain using the 1000 different replications. ", br(),  " ", br(), "
+      In both the time evolution plots following this, the first tab shows the animation of how the marginal density evolves with time. ", br(), "
       The second tab shows all the densities from the start till time k for better visualization of the convergence."
     ))
   })
@@ -677,10 +678,8 @@ server = function(input, output, server) {
   })
 
   output$aboutStationarity = renderUI({
-    HTML(paste("A Markov chain is said to be stationary if the marginal distribution of X_n doesn't depend on n, i.e. every value of the Markov chain has the same distribution as the target distribution.
-      It is possible if and only if the intial draw is from the target distribution itself.", br()," Using the MH-algorithm, it is guarunteed that if the initial distribution is same as the target distribution, the Markov chain will be stationary.
-      All the values of the chain will be identically distributed but won't be independent. There will be some correlation between them depending on the parameters of your aalgorithm.", br(), "
-      Stationarity can be seen in the plot below, density of the independent Markov chains look similar to the target distribution at every time step. They are overlapping exactly as we have taken only a finite number of chains."))
+    HTML(paste("A Markov chain is said to be stationary if every iterate X_n of the Markov chain has the same distribution as the target distribution.
+      This is possible when the intial draw is from the target distribution itself. All iterates of the chain will be identically distributed but not independent (as seen in the ACF plot). Stationarity can be seen in the plot below, where we plot the estimated density of the 1000 independent Markov chains for each time point."))
   })
 
   output$time_anime = renderPlot({
@@ -700,16 +699,12 @@ server = function(input, output, server) {
   })
 
   output$aboutErgodicity = renderUI({
-    HTML(paste("A Markov chain is said to be ergodic if the marginal distribution of X_n converges to the target distribution in probablity as n goes to infinity.", br(), "
-      You can observe ergodicity in the plot below, where the density of the independent chains keep getting closer and closer to the target distribution.", br(), "
-      A stationary Markov chain is always ergodic, as it has already converged to the target, but the reverse is not true. If we start from a different initial distribution (which usually is the case), we can never exactly draw from the target.", br(),"
-      We can only draw from something very similar to our target, where similarity to the target depends on the algorithm and number of time steps."))
+    HTML(paste("A Markov chain is said to be ergodic if the marginal distribution of X_n converges to the target distribution, irrespective of the starting distribution. We observe ergodicity in the plot below, where the estimated density at each time keeps getting closer to the target distribution."))
   })
 
   output$aboutSLLN = renderUI({
-    HTML(paste("The Strong Law of Large Numbers says that the sample mean, i.e., the mean of our Markov chain converges to the actual mean of the distribution (provided it is finite) as the number of samples goes to infinity.", br(), "
-      The plot below demonstrates this. It is plotting the running mean, i.e., the mean till kth time step for every k till 5000, for 50 independent Markov chains,
-      and as you can see, all of these 50 lines converge to the black distribution mean line.", br()," For an example where SLLN doesn't hold, set target to t-distribution and df ≤ 1. Here the mean is undefined. Observe the behaviour of the running mean lines!"))
+    withMathJax(HTML(paste0("$$\\bar{X}_n:= \\dfrac{1}{n} \\sum_{t=1}^{n} X_t \\overset{a.s.}{\\to} E_{\\pi}(X) < \\infty$$", "The Strong Law of Large Numbers for a Markov chain holds when the chain is ergodic. Which means that irrespective of the starting value, sample averages will converge to expectations under the target distribution (assuming it is finite).
+               For an example where SLLN doesn't hold, set target to t-distribution and df ≤ 1; here the mean is undefined")))
   })
 
   output$slln = renderPlot({
@@ -731,10 +726,10 @@ server = function(input, output, server) {
   })
 
   output$aboutCLT = renderUI({
-    HTML(paste("The Central Limit Thoerem states that square root of sample size times the error in mean, i.e., difference between sample mean and actual mean converges in distribution to the normal distribution centered at 0 with some variance as the sample size goes to infinity.", br(),"
-      Not that CLT might not hold if this variance is infinite. Also, it is very difficult in practice to calculate the variance for correlated sample.", br(), "
-      In the plot below, we have simulated 1000 Markov chains for 5000 steps, calculated the error term for these 5000 chains and plotted a histogram of the same. ", br(),"
-      You can see that the histogram looks like a Normal distribution density curve centered at 0 with some variance."))
+    withMathJax(HTML(paste0("$$\\sqrt{n} \\left(\\bar{X}_n - E_{\\pi}(X) \\right) \\overset{d}{\\to} N(0, \\sigma^2)  \\quad\\text{ where}$$", 
+    "$$ \\sigma^2 = Var_{\\pi}(X) + 2 \\sum_{k=1}^{\\infty}Cov_{\\pi}(X_1, X_{1+k}) $$", 
+    "The Central Limit Theorem  (above), when it holds, states that the scaled Monte Carlo error converges to a Gaussian distribution, with variance that accounts for the serial correlation in the chain. 
+    In the plot below, we calculate the left-hand-side for the 1000 independent chains and make a histogram. You can see that the histogram mimics a Normal distribution entered at 0 with some variance.")))
   })
 
   output$clt = renderPlot({
